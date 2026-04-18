@@ -1,80 +1,243 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Build your first FluentAvalonia app with NavigationView"
+description: "Follow this step-by-step guide to create a new Avalonia app, install FluentAvaloniaUI, add the theme, and display a NavigationView with multiple pages."
+keywords: ["FluentAvalonia", "quickstart", "NavigationView", "FluentAvaloniaTheme", "Avalonia", "tutorial"]
 ---
 
-## Get started in three steps
+This guide walks you through creating a new Avalonia application from scratch, installing FluentAvalonia, wiring up the theme, and adding a `NavigationView` with a couple of navigation items. By the end you will have a running app with system-aware light/dark theming and a WinUI-style sidebar.
 
-Get your documentation site running locally and make your first customization.
+<Steps>
 
-### Step 1: Set up your local environment
+<Step title="Create a new Avalonia application">
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+If you do not already have an Avalonia project, create one using the Avalonia templates. Install the templates first if you have not done so:
 
-### Step 2: Deploy your changes
+```bash
+dotnet new install Avalonia.Templates
+dotnet new avalonia.app -o MyFluentApp
+cd MyFluentApp
+```
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+This produces a minimal Avalonia MVVM application. The project file, `MyFluentApp.csproj`, a `App.axaml`, and a `MainWindow.axaml` are all generated for you.
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+</Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+<Step title="Install the FluentAvaloniaUI package">
 
-### Step 3: Go live
+Add the `FluentAvaloniaUI` NuGet package to your project. Run this from inside the project directory:
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+```bash
+dotnet add package FluentAvaloniaUI
+```
+
+To pin a specific release, pass the `--version` flag:
+
+```bash
+dotnet add package FluentAvaloniaUI --version 2.3.0
+```
+
+<Note>
+  FluentAvalonia v2.3.0 requires **Avalonia 11.2.5** or later. The Avalonia templates install the latest stable Avalonia, so this requirement is usually satisfied automatically.
+</Note>
+
+</Step>
+
+<Step title="Register FluentAvaloniaTheme in App.axaml">
+
+Open `App.axaml` and replace its contents with the following. The key changes are adding the `xmlns:fa` namespace and the `<fa:FluentAvaloniaTheme>` entry in `Application.Styles`.
+
+```xml App.axaml
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fa="using:FluentAvalonia.Styling"
+             x:Class="MyFluentApp.App">
+
+    <Application.Styles>
+        <fa:FluentAvaloniaTheme PreferSystemTheme="True"
+                                PreferUserAccentColor="True" />
+    </Application.Styles>
+
+</Application>
+```
+
+Setting `PreferSystemTheme="True"` makes the app follow the operating system's light/dark mode automatically. Setting `PreferUserAccentColor="True"` picks up the user's OS accent color as the primary brand color throughout the UI.
+
+<Tip>
+  Both properties default to `false`. Omit them if you want to control the theme programmatically instead of following system settings.
+</Tip>
+
+</Step>
+
+<Step title="Update App.axaml.cs">
+
+The code-behind file should load the XAML and set up the main window. Replace the contents of `App.axaml.cs` with the following:
+
+```csharp App.axaml.cs
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Markup.Xaml;
+
+namespace MyFluentApp;
+
+public partial class App : Application
+{
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+    }
+
+    public override void OnFrameworkInitializationCompleted()
+    {
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            desktop.MainWindow = new MainWindow();
+        }
+
+        base.OnFrameworkInitializationCompleted();
+    }
+}
+```
+
+</Step>
+
+<Step title="Add a NavigationView to MainWindow.axaml">
+
+Open `MainWindow.axaml` and replace its contents with a window that contains a `NavigationView`. The `xmlns:ui` namespace declaration gives you access to all FluentAvalonia controls.
+
+```xml MainWindow.axaml
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:FluentAvalonia.UI.Controls"
+        x:Class="MyFluentApp.MainWindow"
+        Title="My FluentAvalonia App"
+        Width="900" Height="600">
+
+    <ui:NavigationView PaneDisplayMode="Left"
+                       AlwaysShowHeader="True"
+                       Header="My App">
+
+        <ui:NavigationView.MenuItems>
+            <ui:NavigationViewItem Content="Home"
+                                   Tag="home">
+                <ui:NavigationViewItem.Icon>
+                    <ui:SymbolIcon Symbol="Home" />
+                </ui:NavigationViewItem.Icon>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Settings"
+                                   Tag="settings">
+                <ui:NavigationViewItem.Icon>
+                    <ui:SymbolIcon Symbol="Settings" />
+                </ui:NavigationViewItem.Icon>
+            </ui:NavigationViewItem>
+        </ui:NavigationView.MenuItems>
+
+        <!-- Page content displayed here -->
+        <TextBlock Text="Welcome to FluentAvalonia!"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   FontSize="24" />
+
+    </ui:NavigationView>
+
+</Window>
+```
+
+The `ui:SymbolIcon` control renders icons from the Fluent symbol font that ships with FluentAvalonia, so no icon font setup is required.
+
+</Step>
+
+<Step title="Run the application">
+
+Build and run the project from the command line:
+
+```bash
+dotnet run
+```
+
+You should see a window with a left-side navigation pane containing **Home** and **Settings** items, a header bar, and centered welcome text. The app theme follows your OS light/dark preference automatically.
+
+<Tip>
+  On Windows 11, `PreferSystemTheme="True"` also picks up high-contrast mode. On Linux, theme detection depends on your desktop environment — KDE, GNOME, and Xfce are supported.
+</Tip>
+
+</Step>
+
+</Steps>
+
+## Complete file listing
+
+Here is the final state of the two files you edited, for reference.
+
+<CodeGroup>
+
+```xml App.axaml
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fa="using:FluentAvalonia.Styling"
+             x:Class="MyFluentApp.App">
+
+    <Application.Styles>
+        <fa:FluentAvaloniaTheme PreferSystemTheme="True"
+                                PreferUserAccentColor="True" />
+    </Application.Styles>
+
+</Application>
+```
+
+```xml MainWindow.axaml
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="using:FluentAvalonia.UI.Controls"
+        x:Class="MyFluentApp.MainWindow"
+        Title="My FluentAvalonia App"
+        Width="900" Height="600">
+
+    <ui:NavigationView PaneDisplayMode="Left"
+                       AlwaysShowHeader="True"
+                       Header="My App">
+
+        <ui:NavigationView.MenuItems>
+            <ui:NavigationViewItem Content="Home"
+                                   Tag="home">
+                <ui:NavigationViewItem.Icon>
+                    <ui:SymbolIcon Symbol="Home" />
+                </ui:NavigationViewItem.Icon>
+            </ui:NavigationViewItem>
+
+            <ui:NavigationViewItem Content="Settings"
+                                   Tag="settings">
+                <ui:NavigationViewItem.Icon>
+                    <ui:SymbolIcon Symbol="Settings" />
+                </ui:NavigationViewItem.Icon>
+            </ui:NavigationViewItem>
+        </ui:NavigationView.MenuItems>
+
+        <TextBlock Text="Welcome to FluentAvalonia!"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   FontSize="24" />
+
+    </ui:NavigationView>
+
+</Window>
+```
+
+</CodeGroup>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Theming" icon="palette" href="/theming/fluent-avalonia-theme">
+    Customise the accent color, switch themes programmatically, and apply design tokens.
+  </Card>
+  <Card title="NavigationView" icon="sidebar" href="/controls/navigation-view">
+    Add page navigation, back button support, and different pane display modes.
+  </Card>
+  <Card title="ContentDialog" icon="window-restore" href="/controls/content-dialog">
+    Show modal dialogs with primary, secondary, and close actions.
+  </Card>
+  <Card title="All controls" icon="grid-2" href="/controls/navigation-view">
+    Browse every WinUI-inspired control available in FluentAvalonia.
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

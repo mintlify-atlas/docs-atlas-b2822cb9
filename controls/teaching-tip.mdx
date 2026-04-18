@@ -1,0 +1,278 @@
+---
+title: 'TeachingTip: Contextual callout for feature discovery'
+description: 'Guide users to new or complex features in FluentAvalonia with TeachingTip. Supports targeted anchoring, hero images, placement modes, and light-dismiss.'
+keywords: ['TeachingTip', 'FluentAvalonia', 'onboarding', 'callout', 'tooltip', 'Avalonia']
+---
+
+`TeachingTip` is a notification flyout designed for feature discovery and contextual onboarding. Unlike a standard `ToolTip`, it persists on screen until explicitly dismissed, supports rich content (title, subtitle, hero image, icon, and body controls), and can anchor itself to a specific target control with a directional tail. Use it to draw attention to a newly released feature, explain a complex control the first time it appears, or provide contextual help without navigating the user away from their current task.
+
+## Installation
+
+Add the FluentAvalonia namespace to your XAML file before using any of its controls:
+
+```xml
+xmlns:ui="using:FluentAvalonia.UI.Controls"
+```
+
+## Basic usage
+
+Declare `TeachingTip` as a resource or inline element, set its `Target` to the control you want to annotate, and toggle `IsOpen` to show or hide it.
+
+```xml
+<Button x:Name="FilterButton" Content="Filter" />
+
+<ui:TeachingTip x:Name="FilterTip"
+                Target="{Binding #FilterButton}"
+                Title="New: Smart filters"
+                Subtitle="Filters now update automatically as your data changes."
+                ActionButtonContent="Try it"
+                CloseButtonContent="Got it"
+                IsOpen="False" />
+```
+
+```csharp
+// Show the tip on first launch
+if (!Settings.HasSeenFilterTip)
+{
+    FilterTip.IsOpen = true;
+    Settings.HasSeenFilterTip = true;
+}
+```
+
+## Opening and closing
+
+Set `IsOpen = true` to display the tip and `IsOpen = false` to hide it. The action button and close button both set `IsOpen = false` by default. You can also enable `IsLightDismissEnabled` so the tip closes when the user interacts with any other element.
+
+```xml
+<ui:TeachingTip IsOpen="{Binding ShowOnboardingTip}"
+                IsLightDismissEnabled="True"
+                Title="Drag to reorder"
+                Subtitle="Hold and drag any row to rearrange the list." />
+```
+
+## Target and placement
+
+### Target
+
+Set `Target` to anchor the tip to a specific control. The tip positions itself relative to the target and renders a directional tail pointing at it. If `Target` is `null`, the tip floats relative to the root window.
+
+```xml
+<ui:TeachingTip Target="{Binding #SaveButton}"
+                Title="Auto-save is on"
+                Subtitle="Your work saves automatically every 30 seconds." />
+```
+
+### PreferredPlacement
+
+`PreferredPlacement` (type `TeachingTipPlacementMode`) sets the preferred position relative to the target (or window). If the preferred position does not fit, the tip automatically picks an alternative.
+
+<AccordionGroup>
+  <Accordion title="Auto (default)">
+    Below the target when targeted; along the bottom of the window when non-targeted.
+  </Accordion>
+  <Accordion title="Top / Bottom / Left / Right">
+    Directly above, below, left, or right of the target.
+  </Accordion>
+  <Accordion title="TopLeft / TopRight">
+    Above the target, aligned to the left or right edge.
+  </Accordion>
+  <Accordion title="BottomLeft / BottomRight">
+    Below the target, aligned to the left or right edge.
+  </Accordion>
+  <Accordion title="LeftTop / LeftBottom">
+    To the left of the target, aligned to the top or bottom edge.
+  </Accordion>
+  <Accordion title="RightTop / RightBottom">
+    To the right of the target, aligned to the top or bottom edge.
+  </Accordion>
+  <Accordion title="Center">
+    Centered over the target (when targeted) or centered in the window (when non-targeted).
+  </Accordion>
+</AccordionGroup>
+
+```xml
+<ui:TeachingTip Target="{Binding #ShareButton}"
+                PreferredPlacement="BottomLeft"
+                Title="Share with one click"
+                Subtitle="Use the share button to send a link to your current view." />
+```
+
+## Tail visibility
+
+The `TailVisibility` property controls whether the directional tail pointer is shown.
+
+| Value | Description |
+|---|---|
+| `Auto` (default) | Tail is hidden on non-targeted tips and visible on targeted tips. |
+| `Visible` | Tail is always shown, even on non-targeted tips. |
+| `Collapsed` | Tail is always hidden, even on targeted tips. |
+
+```xml
+<ui:TeachingTip Target="{Binding #HelpButton}"
+                TailVisibility="Collapsed"
+                Title="Need help?"
+                Subtitle="Browse the documentation for step-by-step guides." />
+```
+
+## Title and subtitle
+
+Use `Title` for a concise heading and `Subtitle` for a one- or two-sentence explanation. Both are plain strings rendered in the tip's header area.
+
+```xml
+<ui:TeachingTip Title="Keyboard shortcut"
+                Subtitle="Press Ctrl+K to open the command palette from anywhere in the app." />
+```
+
+## Hero content
+
+`HeroContent` renders a full-width `Control` (typically an `Image`) at the top or bottom of the tip, creating a visual banner effect. Control its position with `HeroContentPlacement`.
+
+```xml
+<ui:TeachingTip Title="Dark mode is here"
+                Subtitle="Switch between light and dark themes in Settings."
+                IsOpen="True">
+    <ui:TeachingTip.HeroContent>
+        <Image Source="/images/dark-mode-preview.png"
+               Stretch="UniformToFill"
+               Height="160"
+               HorizontalAlignment="Stretch" />
+    </ui:TeachingTip.HeroContent>
+</ui:TeachingTip>
+```
+
+`HeroContentPlacement` accepts `Auto`, `Top`, or `Bottom`. The default (`Auto`) places hero content opposite the tail.
+
+## Action and close buttons
+
+`ActionButtonContent` and `CloseButtonContent` accept any object (string or control). Both buttons dismiss the tip by default. Wire up `ActionButtonCommand` or subscribe to `ActionButtonClick` to run logic when the action is triggered.
+
+```xml
+<ui:TeachingTip Title="Try the new timeline"
+                Subtitle="The timeline view shows all your recent activity in one place."
+                ActionButtonContent="Open timeline"
+                CloseButtonContent="Maybe later"
+                ActionButtonClick="TimelineTip_ActionClick" />
+```
+
+```csharp
+private void TimelineTip_ActionClick(TeachingTip sender, EventArgs args)
+{
+    NavigateTo(typeof(TimelinePage));
+}
+```
+
+<Note>
+If you set only `ActionButtonContent` without `CloseButtonContent`, a small icon-only close button appears in the top corner of the tip. If you set neither, no buttons are shown and the tip must be dismissed via `IsLightDismissEnabled` or by setting `IsOpen = false` in code.
+</Note>
+
+## Events
+
+<AccordionGroup>
+  <Accordion title="ActionButtonClick">
+    Fires after the action button is tapped.
+  </Accordion>
+  <Accordion title="CloseButtonClick">
+    Fires after the close button is tapped.
+  </Accordion>
+  <Accordion title="Closing">
+    Fires just before the tip begins to close. `TeachingTipClosingEventArgs` exposes the reason and a `Cancel` property.
+  </Accordion>
+  <Accordion title="Closed">
+    Fires after the tip has fully closed. `TeachingTipClosedEventArgs` carries the close reason.
+  </Accordion>
+</AccordionGroup>
+
+## Key properties reference
+
+<AccordionGroup>
+  <Accordion title="IsOpen">
+    `bool` — Shows or hides the teaching tip.
+  </Accordion>
+  <Accordion title="Target">
+    `Control` — The control the tip anchors to. `null` for a non-targeted, window-relative tip.
+  </Accordion>
+  <Accordion title="PreferredPlacement">
+    `TeachingTipPlacementMode` — Preferred position relative to the target or window.
+  </Accordion>
+  <Accordion title="TailVisibility">
+    `TeachingTipTailVisibility` — Whether the directional pointer is shown. Values: `Auto`, `Visible`, `Collapsed`.
+  </Accordion>
+  <Accordion title="Title / Subtitle">
+    `string` — Heading and supporting text in the tip header area.
+  </Accordion>
+  <Accordion title="HeroContent / HeroContentPlacement">
+    Full-width banner control and its position (`Auto`, `Top`, `Bottom`).
+  </Accordion>
+  <Accordion title="IconSource">
+    `IconSource` — An icon shown alongside the title and subtitle.
+  </Accordion>
+  <Accordion title="ActionButtonContent / ActionButtonCommand">
+    Content and command for the primary action button.
+  </Accordion>
+  <Accordion title="CloseButtonContent / CloseButtonCommand">
+    Content and command for the dismiss button.
+  </Accordion>
+  <Accordion title="IsLightDismissEnabled">
+    `bool` — When `true`, the tip closes when the user scrolls or interacts with elements outside the tip.
+  </Accordion>
+  <Accordion title="PlacementMargin">
+    `Thickness` — Additional margin between the tip and its target (or window edge).
+  </Accordion>
+</AccordionGroup>
+
+## Complete example
+
+The following example implements a first-run onboarding tip sequence that shows one tip at a time.
+
+```xml
+<Grid>
+    <Button x:Name="ImportButton" Content="Import" HorizontalAlignment="Left" />
+    <Button x:Name="ExportButton" Content="Export" HorizontalAlignment="Right" />
+
+    <ui:TeachingTip x:Name="ImportTip"
+                    Target="{Binding #ImportButton}"
+                    PreferredPlacement="Bottom"
+                    Title="Import your data"
+                    Subtitle="Drag a CSV file onto the window or use the Import button to get started."
+                    ActionButtonContent="Next"
+                    CloseButtonContent="Skip tour"
+                    ActionButtonClick="ImportTip_Next"
+                    CloseButtonClick="SkipTour" />
+
+    <ui:TeachingTip x:Name="ExportTip"
+                    Target="{Binding #ExportButton}"
+                    PreferredPlacement="Bottom"
+                    Title="Export anytime"
+                    Subtitle="Export your data to CSV, JSON, or PDF from the Export menu."
+                    CloseButtonContent="Done"
+                    CloseButtonClick="FinishTour" />
+</Grid>
+```
+
+```csharp
+private void StartTour()
+{
+    ImportTip.IsOpen = true;
+}
+
+private void ImportTip_Next(TeachingTip sender, EventArgs args)
+{
+    ImportTip.IsOpen = false;
+    ExportTip.IsOpen = true;
+}
+
+private void SkipTour(TeachingTip sender, EventArgs args)
+{
+    ImportTip.IsOpen = false;
+}
+
+private void FinishTour(TeachingTip sender, EventArgs args)
+{
+    ExportTip.IsOpen = false;
+    Settings.OnboardingComplete = true;
+}
+```
+
+<Tip>
+Store a flag in persistent settings (`IsOpen = !Settings.HasSeenTour`) so the tip sequence only appears once per user account, not on every app launch.
+</Tip>

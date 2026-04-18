@@ -1,0 +1,191 @@
+---
+title: 'SettingsExpander: Expandable settings group control'
+description: 'Group related settings under a collapsible header with SettingsExpander in FluentAvalonia. Covers header, description, icon, IsExpanded, and nested item slots.'
+keywords: ['SettingsExpander', 'SettingsExpanderItem', 'FluentAvalonia', 'settings', 'expander', 'Avalonia']
+---
+
+`SettingsExpander` is a settings-page control that pairs a header card with a collapsible list of child `SettingsExpanderItem` rows. The header shows a title, an optional description, and an icon; the expanded area reveals individual setting rows that each carry their own header, description, icon, and an inline control or action icon. Use it to group related preferences the way Windows 11 Settings does.
+
+## Installation
+
+Add the FluentAvalonia namespace to your XAML file:
+
+```xml
+xmlns:ui="using:FluentAvalonia.UI.Controls"
+```
+
+## Basic usage
+
+A `SettingsExpander` with two child items, each containing an inline control in the `Footer` slot.
+
+```xml
+<ui:SettingsExpander Header="Display"
+                     Description="Adjust display preferences"
+                     IconSource="Display">
+
+    <ui:SettingsExpanderItem Header="Dark mode"
+                             Description="Use a dark colour scheme throughout the app">
+        <ui:SettingsExpanderItem.Footer>
+            <ToggleSwitch />
+        </ui:SettingsExpanderItem.Footer>
+    </ui:SettingsExpanderItem>
+
+    <ui:SettingsExpanderItem Header="Scale"
+                             Description="Set the UI scaling factor">
+        <ui:SettingsExpanderItem.Footer>
+            <ComboBox SelectedIndex="0">
+                <ComboBoxItem>100%</ComboBoxItem>
+                <ComboBoxItem>125%</ComboBoxItem>
+                <ComboBoxItem>150%</ComboBoxItem>
+            </ComboBox>
+        </ui:SettingsExpanderItem.Footer>
+    </ui:SettingsExpanderItem>
+
+</ui:SettingsExpander>
+```
+
+## Expanding and collapsing
+
+`IsExpanded` controls the open state and supports two-way binding. Set it to `true` to start expanded.
+
+```xml
+<ui:SettingsExpander Header="Advanced"
+                     IsExpanded="True">
+    <!-- items -->
+</ui:SettingsExpander>
+```
+
+## SettingsExpanderItem content slots
+
+Each `SettingsExpanderItem` provides three content areas:
+
+| Slot | Property | Description |
+|---|---|---|
+| Left icon | `IconSource` | Icon displayed to the left of the header text. |
+| Main area | `Header` / `Description` | Title and subtitle text for the row. |
+| Right side | `Footer` | Inline control (toggle, combo box, button, etc.) placed on the right edge. |
+| Right icon | `ActionIconSource` | Chevron or custom icon rendered when `IsClickEnabled` is `true`. |
+
+```xml
+<ui:SettingsExpanderItem Header="Notifications"
+                         Description="Send alerts when a task completes"
+                         IconSource="Alert">
+    <ui:SettingsExpanderItem.Footer>
+        <ToggleSwitch IsChecked="{Binding NotificationsEnabled}" />
+    </ui:SettingsExpanderItem.Footer>
+</ui:SettingsExpanderItem>
+```
+
+## Clickable items and navigation
+
+Set `IsClickEnabled="True"` on either `SettingsExpander` (when it has no child items) or `SettingsExpanderItem` to make the row act as a navigation link. Combine it with `Command` / `CommandParameter` or handle the `Click` event.
+
+<Warning>
+  You cannot set `IsClickEnabled="True"` on a `SettingsExpander` that already has child items. Doing so throws an exception at runtime.
+</Warning>
+
+```xml
+<!-- Standalone clickable card (no children) -->
+<ui:SettingsExpander Header="Privacy policy"
+                     Description="Read the full privacy policy"
+                     IconSource="Shield"
+                     IsClickEnabled="True"
+                     ActionIconSource="ChevronRight"
+                     Command="{Binding OpenPrivacyCommand}" />
+```
+
+## Inline Content slot
+
+`SettingsExpanderItem` is a `ContentControl`. Place a control directly as its content to render it below the header row — useful for controls that need more vertical space.
+
+```xml
+<ui:SettingsExpanderItem Header="Custom shortcut">
+    <TextBox Watermark="Press a key combination" />
+</ui:SettingsExpanderItem>
+```
+
+## Full example
+
+A settings page section covering font preferences with multiple item types.
+
+```xml
+<ui:SettingsExpander Header="Typography"
+                     Description="Configure font family and size"
+                     IconSource="Font"
+                     IsExpanded="True">
+
+    <ui:SettingsExpanderItem Header="Font family"
+                             Description="The typeface used for body text"
+                             IconSource="FontColor">
+        <ui:SettingsExpanderItem.Footer>
+            <ComboBox Width="160" SelectedIndex="0">
+                <ComboBoxItem>Segoe UI Variable</ComboBoxItem>
+                <ComboBoxItem>Consolas</ComboBoxItem>
+                <ComboBoxItem>Cascadia Code</ComboBoxItem>
+            </ComboBox>
+        </ui:SettingsExpanderItem.Footer>
+    </ui:SettingsExpanderItem>
+
+    <ui:SettingsExpanderItem Header="Font size"
+                             Description="Body text size in points">
+        <ui:SettingsExpanderItem.Footer>
+            <ui:NumberBox Value="14"
+                          Minimum="8"
+                          Maximum="32"
+                          SmallChange="1"
+                          SpinButtonPlacementMode="Compact"
+                          Width="100" />
+        </ui:SettingsExpanderItem.Footer>
+    </ui:SettingsExpanderItem>
+
+    <ui:SettingsExpanderItem Header="Ligatures"
+                             Description="Enable font ligatures where supported">
+        <ui:SettingsExpanderItem.Footer>
+            <ToggleSwitch />
+        </ui:SettingsExpanderItem.Footer>
+    </ui:SettingsExpanderItem>
+
+    <ui:SettingsExpanderItem Header="Reset to defaults"
+                             IsClickEnabled="True"
+                             ActionIconSource="ChevronRight"
+                             Click="OnResetTypographyClicked" />
+
+</ui:SettingsExpander>
+```
+
+## Properties
+
+<AccordionGroup>
+  <Accordion title="SettingsExpander">
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Header` | `object` | — | Title content displayed on the header card. |
+| `Description` | `string` | — | Subtitle text shown below the header. |
+| `IconSource` | `IconSource` | — | Icon displayed on the left of the header card. |
+| `Footer` | `object` | — | Content rendered on the right side of the header card. |
+| `FooterTemplate` | `IDataTemplate` | — | Data template for the footer content. |
+| `IsExpanded` | `bool` | `false` | Whether the child items are visible. |
+| `IsClickEnabled` | `bool` | `false` | Makes the header card clickable. Mutually exclusive with child items. |
+| `ActionIconSource` | `IconSource` | — | Icon shown when `IsClickEnabled` is `true` (e.g. a chevron). |
+| `Command` | `ICommand` | — | Command invoked when the card is clicked. |
+| `CommandParameter` | `object` | — | Parameter passed to `Command`. |
+
+  </Accordion>
+  <Accordion title="SettingsExpanderItem">
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Header` | `object` | — | Primary label for the row (inherited from `ContentControl`). |
+| `Description` | `string` | — | Subtitle text beneath the header. |
+| `IconSource` | `IconSource` | — | Icon on the left of the row. |
+| `Footer` | `object` | — | Inline control on the right edge of the row. |
+| `FooterTemplate` | `IDataTemplate` | — | Data template for the footer. |
+| `IsClickEnabled` | `bool` | `false` | Makes the row act as a navigation link. |
+| `ActionIconSource` | `IconSource` | — | Icon rendered on the far right when `IsClickEnabled` is `true`. |
+| `Command` | `ICommand` | — | Command invoked on click. |
+| `CommandParameter` | `object` | — | Parameter passed to `Command`. |
+| `Content` | `object` | — | Arbitrary content placed below the header row (from `ContentControl`). |
+
+  </Accordion>
+</AccordionGroup>

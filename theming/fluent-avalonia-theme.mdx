@@ -1,0 +1,178 @@
+---
+title: 'FluentAvaloniaTheme: Setup and Configuration'
+description: 'Learn how to add FluentAvaloniaTheme to your Avalonia app, configure light/dark/high-contrast variants, and control per-platform theming behavior.'
+keywords: ['FluentAvalonia', 'theme', 'Avalonia', 'dark mode', 'light mode', 'high contrast', 'FluentAvaloniaTheme']
+---
+
+`FluentAvaloniaTheme` is the central theming class in FluentAvalonia, living in the `FluentAvalonia.Styling` namespace. It manages the WinUI-style Fluent v2 design resources, accent colors, platform-specific font selection, and the active theme variant (Light, Dark, or High Contrast) for your Avalonia application. Adding it to `App.axaml` is all that is needed to enable the full Fluent design system.
+
+## Adding the theme to your application
+
+<Steps>
+  <Step title="Register the XML namespace">
+    Open `App.axaml` and declare the `fa` namespace alias pointing to `FluentAvalonia.Styling`.
+
+    ```xml App.axaml
+    <Application xmlns="https://github.com/avaloniaui"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:fa="using:FluentAvalonia.Styling"
+                 x:Class="MyApp.App">
+    ```
+  </Step>
+
+  <Step title="Add FluentAvaloniaTheme to Application.Styles">
+    Replace or augment `Application.Styles` with a `FluentAvaloniaTheme` entry. The theme loads all Fluent v2 color and control resources automatically.
+
+    ```xml App.axaml
+    <Application.Styles>
+        <fa:FluentAvaloniaTheme />
+    </Application.Styles>
+    ```
+  </Step>
+
+  <Step title="Opt in to system theme and accent color (recommended)">
+    Set `PreferSystemTheme="True"` and `PreferUserAccentColor="True"` to follow the OS appearance automatically.
+
+    ```xml App.axaml
+    <Application.Styles>
+        <fa:FluentAvaloniaTheme
+            PreferSystemTheme="True"
+            PreferUserAccentColor="True" />
+    </Application.Styles>
+    ```
+  </Step>
+</Steps>
+
+## Properties reference
+
+<ParamField path="PreferSystemTheme" type="boolean" default="false">
+  When `true`, the active theme variant is read from the operating system on startup and updated whenever the OS preference changes. On Linux the detection strategy depends on the desktop environment. High contrast detection only works on Windows.
+</ParamField>
+
+<ParamField path="PreferUserAccentColor" type="boolean" default="false">
+  When `true`, `SystemAccentColor` and its six variants are sourced from the OS accent color. On Linux, accent color detection is limited to KDE, LXQt, and LXDE. Has no effect when `CustomAccentColor` is also set.
+</ParamField>
+
+<ParamField path="CustomAccentColor" type="Color?" default="null">
+  Set a specific `Color` to use as `SystemAccentColor` regardless of `PreferUserAccentColor`. FluentAvalonia auto-generates all six light and dark variants using `Color2.LightenPercent`. Set to `null` to revert to the user or default color.
+</ParamField>
+
+<ParamField path="UseSystemFontOnWindows" type="boolean" default="true">
+  When `true`, `ContentControlThemeFontFamily` is set to the system font at startup — "Segoe UI" on Windows 10 and "Segoe UI Variable Text" on Windows 11. This property is read only once at startup; changes after initialization have no effect.
+</ParamField>
+
+<ParamField path="TextVerticalAlignmentOverrideBehavior" type="TextVerticalAlignmentOverride" default="EnabledNonWindows">
+  Controls whether style overrides are applied to fix text alignment issues in controls like `CheckBox`, `RadioButton`, and `ComboBox` when the Segoe UI font is not available. See the [enum values](#textverticalalignmentoverride-values) below.
+</ParamField>
+
+### TextVerticalAlignmentOverride values
+
+<AccordionGroup>
+  <Accordion title="Disabled">
+    No overrides are applied. Use this if your app targets Windows only, or if you know Segoe UI is installed and you want to preserve strict Fluent design alignment.
+  </Accordion>
+  <Accordion title="EnabledNonWindows (default)">
+    Overrides are applied only on non-Windows platforms. Controls use `VerticalAlignment=Center` to compensate for missing Segoe fonts while keeping Windows behavior unchanged.
+  </Accordion>
+  <Accordion title="AlwaysEnabled">
+    Overrides are applied on every platform. Use this when you want a consistent appearance across all operating systems, at the cost of deviating from Fluent alignment principles on Windows.
+  </Accordion>
+</AccordionGroup>
+
+## Theme variants
+
+FluentAvalonia provides three theme variants. The built-in Avalonia variants are accessed via `ThemeVariant.Light` and `ThemeVariant.Dark`. High contrast is a static field on `FluentAvaloniaTheme` itself.
+
+```csharp
+// Built-in variants
+ThemeVariant.Light
+ThemeVariant.Dark
+
+// High contrast variant (FluentAvalonia-specific)
+FluentAvaloniaTheme.HighContrastTheme
+```
+
+### Setting the theme manually
+
+Disable `PreferSystemTheme` and set `RequestedThemeVariant` on the `Application` to lock the theme at a specific variant.
+
+<CodeGroup>
+
+```xml XAML (App.axaml)
+<Application.Styles>
+    <fa:FluentAvaloniaTheme PreferSystemTheme="False" />
+</Application.Styles>
+```
+
+```csharp C# (App.axaml.cs)
+using Avalonia.Styling;
+using FluentAvalonia.Styling;
+
+// Force dark mode
+Application.Current.RequestedThemeVariant = ThemeVariant.Dark;
+
+// Force high contrast
+Application.Current.RequestedThemeVariant = FluentAvaloniaTheme.HighContrastTheme;
+```
+
+</CodeGroup>
+
+<Note>
+  When `PreferSystemTheme` is `true`, any manual assignment to `RequestedThemeVariant` will be overwritten the next time the OS notifies the app of a color value change.
+</Note>
+
+## Platform behavior
+
+FluentAvalonia resolves the system theme and accent color differently depending on the host operating system.
+
+<CardGroup>
+  <Card title="Windows" icon="windows">
+    Theme and accent color are read via `IPlatformSettings` and automatically updated when the user changes OS settings. High contrast mode is detected and mapped to `FluentAvaloniaTheme.HighContrastTheme`.
+  </Card>
+  <Card title="macOS" icon="apple">
+    Theme follows `NSAppearance` (Aqua/DarkAqua) via Avalonia's `IPlatformSettings`. The accent color is read from the macOS system accent color preference. High contrast is not detected.
+  </Card>
+  <Card title="Linux" icon="linux">
+    Theme detection reads from desktop-environment-specific config files or `gsettings`. See [Linux detection details](#linux-theme-detection) below. High contrast is not detected.
+  </Card>
+  <Card title="WASM / Mobile" icon="globe">
+    Falls back to `IPlatformSettings.GetColorValues()` for theme. Accent color follows the same path as macOS. No system font override is applied.
+  </Card>
+</CardGroup>
+
+### Linux theme detection
+
+Linux support varies by desktop environment. Theme is determined by checking whether the active theme/color-scheme name contains the word "dark".
+
+| Desktop environment | Theme source | Config file |
+|---|---|---|
+| KDE | `ColorScheme` key in `kdeglobals` | `~/.config/kdeglobals` |
+| LXDE | `sNet/ThemeName` key | `~/.config/lxsession/LXDE/desktop.conf` |
+| LXQt | `theme` key | `~/.config/lxqt/lxqt.conf` |
+| Cinnamon | `gsettings org.cinnamon.desktop.interface gtk-theme` | via `gsettings` |
+| GNOME / Xfce | `gsettings org.gnome.desktop.interface color-scheme` | `prefer-light`, `prefer-dark`, or gtk-theme fallback |
+
+<Warning>
+  High contrast theme detection is only available on Windows. Setting `PreferSystemTheme="True"` on Linux will never resolve to `FluentAvaloniaTheme.HighContrastTheme`.
+</Warning>
+
+## Complete example
+
+The following shows a fully configured `App.axaml` with system theme tracking, user accent color, and the default font behavior enabled:
+
+```xml App.axaml
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fa="using:FluentAvalonia.Styling"
+             x:Class="MyApp.App"
+             RequestedThemeVariant="Default">
+
+    <Application.Styles>
+        <fa:FluentAvaloniaTheme
+            PreferSystemTheme="True"
+            PreferUserAccentColor="True"
+            UseSystemFontOnWindows="True"
+            TextVerticalAlignmentOverrideBehavior="EnabledNonWindows" />
+    </Application.Styles>
+</Application>
+```

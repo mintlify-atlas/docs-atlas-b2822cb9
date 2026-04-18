@@ -1,0 +1,189 @@
+---
+title: 'AppWindow: Custom Title Bar and Window Chrome'
+description: 'Learn how to use AppWindow to build a custom title bar with full color control, drag regions, and caption button theming on Windows.'
+keywords: ['AppWindow', 'title bar', 'window chrome', 'caption buttons', 'FluentAvalonia', 'windowing']
+---
+
+`AppWindow` extends Avalonia's `Window` class to provide a modern, WinUI-style window experience. On Windows it takes full ownership of the non-client area so you can place any content in the title bar region, control caption-button colors to the pixel, and integrate platform features like taskbar progress indicators. On macOS and Linux the class falls back gracefully to the native window chrome.
+
+## Getting started
+
+Replace your top-level `Window` with `AppWindow` in both the code-behind and the XAML namespace.
+
+<Steps>
+  <Step title="Add the FluentAvalonia.UI.Windowing namespace">
+    Reference the namespace in your XAML file:
+
+    ```xml MainWindow.axaml
+    <fa:AppWindow
+        xmlns:fa="using:FluentAvalonia.UI.Windowing"
+        Title="My App"
+        Width="1024" Height="768">
+    </fa:AppWindow>
+    ```
+  </Step>
+  <Step title="Inherit from AppWindow in code-behind">
+    Change the base class in `MainWindow.axaml.cs`:
+
+    ```csharp MainWindow.axaml.cs
+    using FluentAvalonia.UI.Windowing;
+
+    public partial class MainWindow : AppWindow
+    {
+        public MainWindow()
+        {
+            InitializeComponent();
+        }
+    }
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  Setting `Width` or `Height` before the window is shown on Windows stores the value internally and applies it in `OnOpened`. This works around a frame-adjustment quirk in the Win32 platform layer.
+</Note>
+
+---
+
+## TitleBar property
+
+The `TitleBar` property returns an `AppWindowTitleBar` instance. Every color setting accepts a nullable `Color?`; passing `null` restores the default system value.
+
+### Extending content into the title bar
+
+Set `ExtendsContentIntoTitleBar = true` to remove the default title bar row and let your own content occupy the full window height. The system caption buttons (minimize / maximize / close) remain visible and the `TitleBar.Height` value describes the reserved height for those buttons only.
+
+```csharp code-behind
+public MainWindow()
+{
+    InitializeComponent();
+    TitleBar.ExtendsContentIntoTitleBar = true;
+    TitleBar.Height = 40;
+}
+```
+
+### Color customization
+
+All color properties on `AppWindowTitleBar` are nullable. Setting any of them immediately triggers a resource update and re-renders the caption area.
+
+<AccordionGroup>
+  <Accordion title="Title bar colors">
+    | Property | Description |
+    |---|---|
+    | `BackgroundColor` | Background when the window is active |
+    | `ForegroundColor` | Text/icon color when active |
+    | `InactiveBackgroundColor` | Background when the window is inactive |
+    | `InactiveForegroundColor` | Text/icon color when inactive |
+  </Accordion>
+  <Accordion title="Caption button colors">
+    | Property | Description |
+    |---|---|
+    | `ButtonBackgroundColor` | Button background (active) |
+    | `ButtonForegroundColor` | Button icon color (active) |
+    | `ButtonHoverBackgroundColor` | Background when the pointer hovers |
+    | `ButtonHoverForegroundColor` | Icon color when the pointer hovers |
+    | `ButtonPressedBackgroundColor` | Background when pressed |
+    | `ButtonPressedForegroundColor` | Icon color when pressed |
+    | `ButtonInactiveBackgroundColor` | Background when the window is inactive |
+    | `ButtonInactiveForegroundColor` | Icon color when the window is inactive |
+  </Accordion>
+  <Accordion title="Geometry properties">
+    | Property | Description |
+    |---|---|
+    | `Height` | Height of the title bar / drag region in DIPs (default: 32) |
+    | `LeftInset` | Read-only: pixels reserved by caption buttons on the left (RTL) |
+    | `RightInset` | Read-only: pixels reserved by caption buttons on the right (LTR) |
+  </Accordion>
+</AccordionGroup>
+
+```csharp code-behind
+TitleBar.BackgroundColor = Color.Parse("#202020");
+TitleBar.ForegroundColor = Colors.White;
+TitleBar.ButtonHoverBackgroundColor = Color.Parse("#FF5500");
+```
+
+### Hit testing
+
+`TitleBarHitTestType` controls how the window determines whether a pointer event should be treated as a title-bar drag or as a client-area click.
+
+| Value | Behavior |
+|---|---|
+| `Simple` | Bounds check only — any point above `TitleBar.Height` is draggable |
+| `Complex` | Bounds check + renderer hit test; interactive focusable controls receive events normally |
+
+<Tip>
+  Use `Complex` when you embed a `NavigationView` or `TabView` in the title bar area. `Simple` may swallow pointer events on tab headers or navigation items.
+</Tip>
+
+### Custom drag rectangles
+
+Call `TitleBar.SetDragRectangles(Rect[])` to replace the default full-width drag region with precise rectangles. Pass `null` to restore the default.
+
+```csharp code-behind
+// Reserve a narrow strip on the right side as the only drag target
+TitleBar.SetDragRectangles(new[]
+{
+    new Rect(200, 0, Bounds.Width - 200, TitleBar.Height)
+});
+```
+
+---
+
+## AllowInteractionInTitleBar attached property
+
+Any control placed visually inside the title bar region is excluded from drag hit-testing when `AppWindow.AllowInteractionInTitleBar` is set to `true`. The property is implemented as a weak reference list so removed controls are cleaned up automatically.
+
+```xml XAML example
+<fa:AppWindow xmlns:fa="using:FluentAvalonia.UI.Windowing"
+              Title="My App">
+    <fa:AppWindow.TitleBar>
+        <!-- TitleBar config done in code-behind -->
+    </fa:AppWindow.TitleBar>
+
+    <Grid RowDefinitions="40,*">
+        <!-- Custom title bar row -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
+            <Image Grid.Column="0" Source="/Assets/logo.png"
+                   Width="20" Height="20" Margin="12,0"/>
+            <TextBlock Grid.Column="1" Text="{Binding Title}"
+                       VerticalAlignment="Center"/>
+            <!-- Search box needs pointer events -->
+            <TextBox Grid.Column="2" Width="200" Margin="0,0,140,0"
+                     fa:AppWindow.AllowInteractionInTitleBar="True"/>
+        </Grid>
+
+        <!-- Main content -->
+        <ContentControl Grid.Row="1" Content="{Binding CurrentPage}"/>
+    </Grid>
+</fa:AppWindow>
+```
+
+---
+
+## ShowAsDialog
+
+Set `ShowAsDialog = true` to hide the minimize and maximize buttons, matching the appearance of a modal dialog. This property is only respected on Windows.
+
+```csharp code-behind
+public SettingsDialog()
+{
+    InitializeComponent();
+    ShowAsDialog = true;
+    CanResize = false;
+}
+```
+
+---
+
+## Platform support
+
+| Feature | Windows | macOS | Linux |
+|---|---|---|---|
+| Managed title bar | Full | Fallback | Fallback |
+| `ExtendsContentIntoTitleBar` | Full | Partial | Partial |
+| Caption button colors | Full | Not applied | Not applied |
+| `PlatformFeatures` | Full | Not implemented | Not implemented |
+
+<Warning>
+  `AppWindow.PlatformFeatures` is only implemented on Windows. Always null-check before calling any of its methods.
+</Warning>

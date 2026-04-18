@@ -1,0 +1,66 @@
+---
+title: "FluentAvalonia: WinUI-inspired controls for Avalonia"
+description: "Learn what FluentAvalonia is, which platforms it supports, what controls it provides, and how it brings Fluent Design to cross-platform .NET apps."
+keywords: ["FluentAvalonia", "Avalonia", "WinUI", "Fluent Design", "cross-platform", "controls"]
+---
+
+FluentAvalonia is an open-source control library that ports WinUI 3 controls and the Fluent Design System to [Avalonia](https://avaloniaui.net/). It is published on NuGet as [`FluentAvaloniaUI`](https://www.nuget.org/packages/FluentAvaloniaUI/) and lets you build native-feeling desktop and cross-platform applications that look consistent with modern Windows design — without being locked to a single operating system.
+
+## Key features
+
+**WinUI control ports.** FluentAvalonia brings a wide set of WinUI 3 controls to Avalonia, including `NavigationView`, `TabView`, `ContentDialog`, `TaskDialog`, `CommandBar`, `InfoBar`, `TeachingTip`, `NumberBox`, `BreadcrumbBar`, and more. These controls behave as closely as possible to their WinUI counterparts in terms of API and visual appearance.
+
+**Fluent theming system.** The library ships a `FluentAvaloniaTheme` style provider that manages the Fluent v2 design token system, including accent colors, light/dark mode, and high-contrast support. It can automatically detect and follow the system theme and accent color on Windows, macOS, and Linux.
+
+**Cross-platform support.** FluentAvalonia targets every platform that Avalonia supports: Windows, macOS, Linux, Android, iOS, and WebAssembly (WASM). Mobile and browser builds should work in practice, though they are not actively maintained by the library author.
+
+## Supported platforms
+
+| Platform | Support level |
+|---|---|
+| Windows 10/11 | Full, including system theme and accent color detection |
+| macOS | Full, including system theme and accent color detection |
+| Linux | Full; theme/accent detection depends on the desktop environment |
+| Android | Community-supported (not actively maintained) |
+| iOS | Community-supported (not actively maintained) |
+| WebAssembly (WASM) | Community-supported (not actively maintained) |
+
+<Warning>
+  Windows 7 and Windows 8/8.1 are not supported. FluentAvalonia may still run on these versions, but no support will be given for issues that arise on them.
+</Warning>
+
+## Version requirements
+
+Use the table below to match the correct FluentAvalonia version to your Avalonia version.
+
+| FluentAvalonia | Avalonia minimum |
+|---|---|
+| v2.3.0 (current) | 11.2.5 |
+| v2.1.0 | 11.1.0 |
+| v2.0.5 | 11.0.4 |
+| v2.0.x and below | 11.0 |
+
+<Note>
+  The 1.x branch of FluentAvalonia, which targeted Avalonia 0.10.x, is deprecated. Upgrade to Avalonia 11.x and FluentAvalonia 2.x to receive current fixes and new controls.
+</Note>
+
+## NuGet package
+
+FluentAvalonia is distributed as a single NuGet package. The package ID is `FluentAvaloniaUI` (not `FluentAvalonia`).
+
+```bash
+dotnet add package FluentAvaloniaUI
+```
+
+You can also find it at [nuget.org/packages/FluentAvaloniaUI](https://www.nuget.org/packages/FluentAvaloniaUI/).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Add FluentAvalonia to your project and configure the theme in `App.axaml`.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Build a working app with a `NavigationView` and system-aware theming in minutes.
+  </Card>
+</CardGroup>

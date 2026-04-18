@@ -1,0 +1,237 @@
+---
+title: 'ContentDialog: Modal dialog for user confirmation'
+description: 'Show modal dialogs with up to three buttons in FluentAvalonia. Covers ShowAsync, ContentDialogResult, placement modes, and closing events.'
+keywords: ['ContentDialog', 'FluentAvalonia', 'modal', 'dialog', 'Avalonia', 'popup']
+---
+
+`ContentDialog` displays a modal overlay that interrupts the current task and asks the user to take an action or acknowledge information. It supports a title, arbitrary body content, and up to three buttons: primary, secondary, and close. Because it blocks interaction with the rest of the window, use `ContentDialog` for decisions that must be resolved before the user continues — confirmations, warnings, and short input forms. For longer workflows with multiple commands, a progress bar, or radio/checkbox selections, prefer [`TaskDialog`](/controls/task-dialog).
+
+## Installation
+
+Add the FluentAvalonia namespace to your XAML file before using any of its controls:
+
+```xml
+xmlns:ui="using:FluentAvalonia.UI.Controls"
+```
+
+## Basic usage
+
+Define the dialog in XAML and call `ShowAsync()` from code-behind. `ShowAsync()` is awaitable and returns a `ContentDialogResult` once the user dismisses the dialog.
+
+<CodeGroup>
+
+```xml XAML definition
+<ui:ContentDialog x:Name="ConfirmDialog"
+                  Title="Delete file?"
+                  PrimaryButtonText="Delete"
+                  CloseButtonText="Cancel"
+                  DefaultButton="Close">
+    <TextBlock TextWrapping="Wrap">
+        This action cannot be undone. The file will be permanently removed.
+    </TextBlock>
+</ui:ContentDialog>
+```
+
+```csharp Show and handle result
+private async Task ShowDeleteDialogAsync()
+{
+    var result = await ConfirmDialog.ShowAsync();
+
+    if (result == ContentDialogResult.Primary)
+    {
+        // User confirmed — perform deletion
+        await DeleteFileAsync();
+    }
+}
+```
+
+</CodeGroup>
+
+## ContentDialogResult
+
+`ShowAsync()` returns a `ContentDialogResult` enum value indicating which button the user pressed.
+
+<AccordionGroup>
+  <Accordion title="None">
+    No button was tapped. This occurs when the dialog is dismissed programmatically rather than by user interaction.
+  </Accordion>
+  <Accordion title="Primary">
+    The primary button was tapped. Map this to the affirmative or destructive action in your dialog (e.g., **Save**, **Delete**, **OK**).
+  </Accordion>
+  <Accordion title="Secondary">
+    The secondary button was tapped. Use this for an alternative action that is distinct from both the primary action and cancellation.
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+Tapping the close button or pressing **Escape** returns `ContentDialogResult.None`, not a dedicated `Close` value. Check the `Closed` event args if you need to distinguish light-dismiss from the close button.
+</Note>
+
+## Key properties
+
+<AccordionGroup>
+  <Accordion title="Title">
+    `object` — The dialog heading. Accepts a plain string or any control. Use `TitleTemplate` to supply a custom `IDataTemplate` for data-bound titles.
+  </Accordion>
+  <Accordion title="Content">
+    The body of the dialog. Set this to a `string`, a layout panel, or any control. Complex forms should be wrapped in a `ScrollViewer` so the dialog remains usable on small screens.
+  </Accordion>
+  <Accordion title="PrimaryButtonText">
+    `string` — Label for the primary action button. Leave empty to hide the button.
+  </Accordion>
+  <Accordion title="SecondaryButtonText">
+    `string` — Label for the secondary action button. Leave empty to hide the button.
+  </Accordion>
+  <Accordion title="CloseButtonText">
+    `string` — Label for the close/cancel button. Leave empty to hide the button. This button always returns `ContentDialogResult.None`.
+  </Accordion>
+  <Accordion title="DefaultButton">
+    `ContentDialogButton` — Specifies which button receives the accent style and responds to **Enter**. Values: `None` (default), `Primary`, `Secondary`, `Close`.
+  </Accordion>
+  <Accordion title="IsPrimaryButtonEnabled">
+    `bool` — Controls whether the primary button is interactive. Default: `true`. Bind this to a validation flag to prevent invalid form submissions.
+  </Accordion>
+  <Accordion title="IsSecondaryButtonEnabled">
+    `bool` — Controls whether the secondary button is interactive. Default: `true`.
+  </Accordion>
+  <Accordion title="FullSizeDesired">
+    `bool` — When `true`, the dialog expands to the maximum allowed size rather than fitting its content.
+  </Accordion>
+</AccordionGroup>
+
+## ContentDialogButton enum
+
+The `DefaultButton` property accepts a `ContentDialogButton` value to highlight one button as the default action.
+
+| Value | Description |
+|---|---|
+| `None` | No button is the default. |
+| `Primary` | The primary button is the default (accent styling, responds to Enter). |
+| `Secondary` | The secondary button is the default. |
+| `Close` | The close button is the default. |
+
+## ContentDialogPlacement
+
+`ContentDialogPlacement` controls where the dialog is rooted in the visual tree. Pass it as a parameter to `ShowAsync()`.
+
+<AccordionGroup>
+  <Accordion title="Popup (default)">
+    The dialog is placed at the top of the XamlRoot, above all content. A semi-transparent light-dismiss layer appears below it to indicate the modal state. This is the standard behavior.
+  </Accordion>
+  <Accordion title="InPlace">
+    The dialog is rooted in a parent container rather than the XamlRoot. **Not currently supported** in FluentAvalonia — reserved for future use.
+  </Accordion>
+</AccordionGroup>
+
+## Events
+
+<AccordionGroup>
+  <Accordion title="Opening">
+    Fires before the dialog is made visible. Use this to prepare or reset dialog state before the user sees it.
+  </Accordion>
+  <Accordion title="Opened">
+    Fires after the dialog has finished its open animation and is fully visible.
+  </Accordion>
+  <Accordion title="Closing">
+    Fires after the user taps a button but before the dialog begins to close. The `ContentDialogClosingEventArgs` exposes a `Cancel` property — set it to `true` to prevent the dialog from closing (e.g., to run async validation).
+  </Accordion>
+  <Accordion title="Closed">
+    Fires after the dialog has finished closing. `ContentDialogClosedEventArgs.Result` holds the `ContentDialogResult` that caused the closure.
+  </Accordion>
+  <Accordion title="PrimaryButtonClick / SecondaryButtonClick / CloseButtonClick">
+    Fire immediately when the corresponding button is tapped. The `ContentDialogButtonClickEventArgs` also exposes a `Cancel` property to abort the close.
+  </Accordion>
+</AccordionGroup>
+
+## Complete example
+
+The following example shows a dialog built entirely in code, with validation that keeps the primary button disabled until the user types something.
+
+<Steps>
+  <Step title="Create the dialog">
+    Build a `ContentDialog` instance, set its properties, and provide body content.
+
+    ```csharp
+    var dialog = new ContentDialog
+    {
+        Title = "Rename item",
+        PrimaryButtonText = "Rename",
+        CloseButtonText = "Cancel",
+        DefaultButton = ContentDialogButton.Primary,
+        IsPrimaryButtonEnabled = false
+    };
+    ```
+  </Step>
+  <Step title="Add body content">
+    Attach a `TextBox` as the dialog body and wire up validation.
+
+    ```csharp
+    var input = new TextBox { Watermark = "New name" };
+
+    input.TextChanged += (_, _) =>
+    {
+        dialog.IsPrimaryButtonEnabled = !string.IsNullOrWhiteSpace(input.Text);
+    };
+
+    dialog.Content = input;
+    ```
+  </Step>
+  <Step title="Show the dialog and read the result">
+    Await `ShowAsync()`, then read the result and the input value.
+
+    ```csharp
+    var result = await dialog.ShowAsync();
+
+    if (result == ContentDialogResult.Primary)
+    {
+        await RenameItemAsync(input.Text!.Trim());
+    }
+    ```
+  </Step>
+</Steps>
+
+## XAML-defined dialog with closing guard
+
+Use the `Closing` event to run async validation before allowing the dialog to close.
+
+```xml
+<ui:ContentDialog x:Name="SaveDialog"
+                  Title="Save changes"
+                  PrimaryButtonText="Save"
+                  SecondaryButtonText="Discard"
+                  CloseButtonText="Cancel"
+                  DefaultButton="Primary"
+                  Closing="SaveDialog_Closing">
+    <StackPanel Spacing="8">
+        <TextBlock Text="You have unsaved changes." />
+        <CheckBox x:Name="BackupCheck" Content="Create a backup before saving" />
+    </StackPanel>
+</ui:ContentDialog>
+```
+
+```csharp
+private async void SaveDialog_Closing(ContentDialog sender,
+    ContentDialogClosingEventArgs args)
+{
+    if (args.Result == ContentDialogResult.Primary)
+    {
+        // Defer the close while we validate asynchronously
+        var deferral = args.GetDeferral();
+
+        try
+        {
+            bool valid = await ValidateDataAsync();
+            if (!valid)
+                args.Cancel = true;
+        }
+        finally
+        {
+            deferral.Complete();
+        }
+    }
+}
+```
+
+<Tip>
+Always call `deferral.Complete()` in a `finally` block so the dialog is never left in a stuck state if your async validation throws.
+</Tip>

@@ -1,0 +1,181 @@
+---
+title: 'Accent Colors in FluentAvalonia'
+description: 'Understand how SystemAccentColor and its six variants work, how to use OS accent colors, set a custom color, and manually override accent resources.'
+keywords: ['FluentAvalonia', 'accent color', 'SystemAccentColor', 'Color2', 'custom accent', 'dark mode', 'theming']
+---
+
+FluentAvalonia models its accent color system after the Windows Fluent design palette. Every accent configuration — whether sourced from the OS, a custom value, or a default — produces seven resource keys: the base `SystemAccentColor` plus three progressively lighter variants and three progressively darker variants. Controls reference these keys via `DynamicResource` so that changing the accent color updates every control automatically.
+
+## The accent color palette
+
+When an accent color is resolved, FluentAvalonia registers the following seven resources into `Application.Resources`:
+
+| Resource key | Description |
+|---|---|
+| `SystemAccentColor` | The base accent color |
+| `SystemAccentColorLight1` | 15% lighter (HSL lightness) |
+| `SystemAccentColorLight2` | 30% lighter |
+| `SystemAccentColorLight3` | 45% lighter |
+| `SystemAccentColorDark1` | 15% darker |
+| `SystemAccentColorDark2` | 30% darker |
+| `SystemAccentColorDark3` | 45% darker |
+
+The light and dark variants are derived by calling `Color2.LightenPercent` with positive (lighten) or negative (darken) percentages. In light theme, controls typically use the dark variants for foreground text on accent surfaces; in dark theme they use the light variants.
+
+<Note>
+  FluentAvalonia does not validate the legibility or accessibility of a chosen accent color. Ensuring adequate contrast against control backgrounds is your responsibility.
+</Note>
+
+## Sourcing the accent color
+
+There are three ways the accent color can be resolved, evaluated in priority order:
+
+<Steps>
+  <Step title="CustomAccentColor (highest priority)">
+    When `CustomAccentColor` is set to a non-null `Color`, it is used directly. All six variants are generated automatically.
+  </Step>
+  <Step title="PreferUserAccentColor">
+    When `CustomAccentColor` is null and `PreferUserAccentColor` is `true`, the accent color is read from the OS. Platform support varies (see below).
+  </Step>
+  <Step title="Default accent color (fallback)">
+    When neither of the above apply, FluentAvalonia falls back to SlateBlue (`#6A5ACD`) with pre-computed variants.
+  </Step>
+</Steps>
+
+## PreferUserAccentColor
+
+Set `PreferUserAccentColor="True"` on `FluentAvaloniaTheme` to read the user's system accent color at startup and update it whenever the OS color values change.
+
+```xml App.axaml
+<fa:FluentAvaloniaTheme
+    PreferSystemTheme="True"
+    PreferUserAccentColor="True" />
+```
+
+### Platform support for OS accent color
+
+<AccordionGroup>
+  <Accordion title="Windows">
+    The accent color is read from `IPlatformSettings` and refreshed in response to `ColorValuesChanged`. All shades of the Windows accent palette are available.
+  </Accordion>
+  <Accordion title="macOS">
+    Avalonia's `IPlatformSettings.GetColorValues().AccentColor1` is used. The six variants are generated from this single color using `LightenPercent`.
+  </Accordion>
+  <Accordion title="Linux">
+    Accent color detection is only available on three desktop environments. On all others, the default SlateBlue color is used.
+
+    | Desktop | Source |
+    |---|---|
+    | KDE | `AccentColor` or `[Colors:Selection] BackgroundNormal` from `~/.config/kdeglobals` |
+    | LXQt | `highlight_color` from `~/.config/lxqt/lxqt.conf` |
+    | LXDE | `selected_bg_color` from `~/.config/lxsession/LXDE/desktop.conf` |
+
+    GNOME, Xfce, Cinnamon, and other environments do not support accent color detection.
+  </Accordion>
+</AccordionGroup>
+
+## CustomAccentColor
+
+Override the accent color with any `Color` by setting `CustomAccentColor` in XAML or C#. Setting it back to `null` reverts to the user accent color (if `PreferUserAccentColor` is enabled) or the default.
+
+<CodeGroup>
+
+```xml XAML
+<fa:FluentAvaloniaTheme
+    PreferSystemTheme="True"
+    CustomAccentColor="#FF5733" />
+```
+
+```csharp C#
+var theme = Application.Current.Styles
+    .OfType<FluentAvaloniaTheme>()
+    .First();
+
+// Set a custom color
+theme.CustomAccentColor = Color.Parse("#FF5733");
+
+// Revert to system / default
+theme.CustomAccentColor = null;
+```
+
+</CodeGroup>
+
+<Tip>
+  `CustomAccentColor` can be changed at runtime. FluentAvalonia calls `LoadCustomAccentColor()` immediately when the value changes, updating all seven resource keys live.
+</Tip>
+
+## Color2 and LightenPercent
+
+`Color2` is a FluentAvalonia struct in the `FluentAvalonia.UI.Media` namespace that represents a color in RGB, HSV, HSL, or CMYK space. It provides the `LightenPercent(float percent)` method used internally to generate accent variants.
+
+```csharp
+using FluentAvalonia.UI.Media;
+using Avalonia.Media;
+
+// Create a Color2 from an Avalonia Color
+Color2 base = Color.Parse("#0078D4");
+
+// Generate lighter variants (positive percent = lighter)
+Color light1 = (Color)base.LightenPercent(0.15f);  // +15%
+Color light2 = (Color)base.LightenPercent(0.30f);  // +30%
+Color light3 = (Color)base.LightenPercent(0.45f);  // +45%
+
+// Generate darker variants (negative percent = darker)
+Color dark1 = (Color)base.LightenPercent(-0.15f);  // -15%
+Color dark2 = (Color)base.LightenPercent(-0.30f);  // -30%
+Color dark3 = (Color)base.LightenPercent(-0.45f);  // -45%
+```
+
+`LightenPercent` converts the color to HSL internally and adjusts the lightness channel by `old + (old * percent)`. The `Color2` struct supports implicit conversion to and from `Avalonia.Media.Color`.
+
+Other useful `Color2` methods:
+
+| Method | Description |
+|---|---|
+| `ToRGB()` / `ToHSV()` / `ToHSL()` | Convert between color spaces |
+| `WithHue(int)` | Return a copy with a different hue |
+| `WithSat(int)` | Return a copy with a different HSV saturation |
+| `WithAlpha(int)` | Return a copy with a different alpha |
+| `Lighten(float)` | Adjust lightness by an absolute amount |
+| `ToHexString()` | Format as `#AARRGGBB` hex string |
+
+## Manually overriding accent resources
+
+For full control over every shade, declare them directly in `Application.Resources`. Resources defined here take precedence over FluentAvalonia's internally computed values because `FluentAvaloniaTheme.TryGetResource` checks `Application.Current.Resources` first.
+
+```xml App.axaml
+<Application.Resources>
+    <Color x:Key="SystemAccentColor">#0078D4</Color>
+    <Color x:Key="SystemAccentColorLight1">#2B8FE0</Color>
+    <Color x:Key="SystemAccentColorLight2">#57A6EB</Color>
+    <Color x:Key="SystemAccentColorLight3">#85BFF5</Color>
+    <Color x:Key="SystemAccentColorDark1">#005EA3</Color>
+    <Color x:Key="SystemAccentColorDark2">#004578</Color>
+    <Color x:Key="SystemAccentColorDark3">#002D51</Color>
+</Application.Resources>
+```
+
+<Warning>
+  When you manually specify all seven keys in `Application.Resources`, you should set `PreferUserAccentColor="False"` and leave `CustomAccentColor` as null. Otherwise FluentAvalonia may overwrite your custom values when the OS color values change.
+</Warning>
+
+### Theme-specific overrides with ThemeDictionaries
+
+If you need different accent shades for light and dark mode, use `ResourceDictionary.ThemeDictionaries`:
+
+```xml App.axaml
+<Application.Resources>
+    <ResourceDictionary>
+        <ResourceDictionary.ThemeDictionaries>
+            <ResourceDictionary x:Key="Default">
+                <!-- Light theme accent -->
+                <Color x:Key="SystemAccentColor">#005EA3</Color>
+            </ResourceDictionary>
+            <ResourceDictionary x:Key="Dark">
+                <!-- Dark theme accent -->
+                <Color x:Key="SystemAccentColor">#2B8FE0</Color>
+            </ResourceDictionary>
+        </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+</Application.Resources>
+```

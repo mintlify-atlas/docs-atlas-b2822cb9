@@ -1,0 +1,181 @@
+---
+title: 'Navigation Transitions and Page Animations'
+description: 'Use NavigationTransitionInfo subclasses to animate page changes in a FluentAvalonia Frame, with options to suppress or globally disable animations.'
+keywords: ['NavigationTransitionInfo', 'Frame', 'navigation', 'animation', 'FluentAvalonia', 'transitions']
+---
+
+FluentAvalonia ships four concrete `NavigationTransitionInfo` subclasses that mirror the WinUI animation vocabulary. Each one is passed to `Frame.Navigate()` and controls how the incoming page is animated into view. You can also suppress animations per-navigation or globally via `FAUISettings`.
+
+---
+
+## NavigationTransitionInfo base class
+
+`NavigationTransitionInfo` is an abstract `AvaloniaObject`. Subclasses implement a single method:
+
+```csharp base class
+public abstract class NavigationTransitionInfo : AvaloniaObject
+{
+    public abstract void RunAnimation(Animatable ctrl, CancellationToken cancellationToken);
+}
+```
+
+`Frame` calls `RunAnimation` with the new page control and a cancellation token when a navigation occurs. All built-in implementations are `async`; they run the animation and restore `Opacity = 1` when complete.
+
+---
+
+## Transition types
+
+<CardGroup cols={2}>
+  <Card title="EntranceNavigationTransitionInfo" icon="arrow-up">
+    Slides the page in from below while fading it in. Default offsets: 0 px horizontal, 100 px vertical. Duration: 500 ms.
+  </Card>
+  <Card title="DrillInNavigationTransitionInfo" icon="magnifying-glass-plus">
+    Zooms the page in from a small scale (drill-in) or out from a large scale (drill-out). Duration: 670 ms.
+  </Card>
+  <Card title="SlideNavigationTransitionInfo" icon="arrow-right">
+    Slides the page in from one of four directions. Default slide distance: 56 px. Duration: 167 ms.
+  </Card>
+  <Card title="SuppressNavigationTransitionInfo" icon="ban">
+    Performs no animation. The page appears instantly with full opacity.
+  </Card>
+</CardGroup>
+
+---
+
+## EntranceNavigationTransitionInfo
+
+Slides and fades the incoming page upward (default: 100 px vertical offset, 500 ms). Use `FromHorizontalOffset` and `FromVerticalOffset` to change the starting position.
+
+```csharp
+frame.Navigate(typeof(HomePage), null,
+    new EntranceNavigationTransitionInfo());
+```
+
+---
+
+## DrillInNavigationTransitionInfo
+
+Zooms the page in from near-zero scale (forward navigation) or out from 1.5× scale (backward navigation). Duration: 670 ms.
+
+```csharp
+// Forward
+frame.Navigate(typeof(DetailPage), null, new DrillInNavigationTransitionInfo());
+// Backward
+frame.Navigate(typeof(MasterPage), null,
+    new DrillInNavigationTransitionInfo { IsReversed = true });
+```
+
+---
+
+## SlideNavigationTransitionInfo
+
+The slide transition moves the incoming page in from a specified edge while fading it in. The direction is controlled by the `Effect` property using the `SlideNavigationTransitionEffect` enum.
+
+### SlideNavigationTransitionEffect enum
+
+| Value | Description |
+|---|---|
+| `FromLeft` | Page enters from the left; outgoing page exits to the right |
+| `FromRight` | Page enters from the right; outgoing page exits to the left |
+| `FromTop` | Page enters from the top; outgoing page fades out |
+| `FromBottom` | Page enters from the bottom; outgoing page fades out |
+
+```csharp slide usage
+// Back navigation: slide in from the left
+frame.Navigate(typeof(PreviousPage), null,
+    new SlideNavigationTransitionInfo
+    {
+        Effect = SlideNavigationTransitionEffect.FromLeft
+    });
+
+// Forward navigation: slide in from the right
+frame.Navigate(typeof(NextPage), null,
+    new SlideNavigationTransitionInfo
+    {
+        Effect = SlideNavigationTransitionEffect.FromRight
+    });
+```
+
+### Properties
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Effect` | `SlideNavigationTransitionEffect` | `FromRight` | Which edge the page enters from |
+| `FromHorizontalOffset` | `double` | `56` | Slide distance for `FromLeft` / `FromRight` in DIPs |
+| `FromVerticalOffset` | `double` | `56` | Slide distance for `FromTop` / `FromBottom` in DIPs |
+
+---
+
+## SuppressNavigationTransitionInfo
+
+Use `SuppressNavigationTransitionInfo` to skip animation entirely, for example when restoring navigation state on app launch or when animations are not appropriate.
+
+```csharp suppress
+frame.Navigate(typeof(RestoredPage), parameter,
+    new SuppressNavigationTransitionInfo());
+```
+
+---
+
+## Passing transitions to Frame.Navigate
+
+All overloads of `Frame.Navigate` that accept a `NavigationTransitionInfo` parameter work the same way regardless of which subclass you pass.
+
+<CodeGroup>
+
+```csharp navigate with transition
+using FluentAvalonia.UI.Media.Animation;
+
+// Navigate with a slide transition
+_frame.Navigate(typeof(SettingsPage), null,
+    new SlideNavigationTransitionInfo
+    {
+        Effect = SlideNavigationTransitionEffect.FromBottom
+    });
+```
+
+```xml XAML binding
+<!-- NavigationView handles frame navigation internally;
+     set the transition on the NavigationView -->
+<NavigationView>
+    <!-- Content Frame is managed by NavigationView -->
+</NavigationView>
+```
+
+</CodeGroup>
+
+---
+
+## Globally disabling animations
+
+Call `FAUISettings.SetAnimationsEnabledAtAppLevel(false)` to disable all FluentAvalonia animations across the entire application. This is checked at the point each animation is run.
+
+```csharp global disable
+using FluentAvalonia.Core;
+
+// Disable all animations (e.g. for accessibility or testing)
+FAUISettings.SetAnimationsEnabledAtAppLevel(false);
+
+// Re-enable later
+FAUISettings.SetAnimationsEnabledAtAppLevel(true);
+
+// Query the current state
+bool animationsOn = FAUISettings.AreAnimationsEnabled();
+```
+
+<Tip>
+  Respect the operating system's "reduce motion" accessibility setting by querying the platform and calling `SetAnimationsEnabledAtAppLevel(false)` accordingly at app startup.
+</Tip>
+
+---
+
+## Choosing the right transition
+
+| Scenario | Recommended transition |
+|---|---|
+| Hierarchical forward (master → detail) | `DrillInNavigationTransitionInfo` (`IsReversed = false`) |
+| Hierarchical back | `DrillInNavigationTransitionInfo` (`IsReversed = true`) |
+| Lateral forward | `SlideNavigationTransitionInfo` (`FromRight`) |
+| Lateral back | `SlideNavigationTransitionInfo` (`FromLeft`) |
+| First load / state restore | `SuppressNavigationTransitionInfo` |
+| General entrance | `EntranceNavigationTransitionInfo` |

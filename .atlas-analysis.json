@@ -1,0 +1,109 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "FluentAvalonia",
+  "projectDescription": "A WinUI-inspired control library for Avalonia that brings Fluent Design System components and theming to cross-platform .NET desktop applications.",
+  "theme": "willow",
+  "primaryColor": "#94cb04",
+  "lightColor": "#545454",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Theming",
+            "pages": [
+              "theming/fluent-avalonia-theme",
+              "theming/accent-colors",
+              "theming/design-tokens"
+            ]
+          },
+          {
+            "group": "Navigation Controls",
+            "pages": [
+              "controls/navigation-view",
+              "controls/frame",
+              "controls/breadcrumb-bar",
+              "controls/tab-view"
+            ]
+          },
+          {
+            "group": "Feedback & Dialogs",
+            "pages": [
+              "controls/content-dialog",
+              "controls/task-dialog",
+              "controls/info-bar",
+              "controls/teaching-tip",
+              "controls/info-badge"
+            ]
+          },
+          {
+            "group": "Input & Display Controls",
+            "pages": [
+              "controls/number-box",
+              "controls/range-slider",
+              "controls/command-bar",
+              "controls/settings-expander",
+              "controls/icons"
+            ]
+          },
+          {
+            "group": "Windowing",
+            "pages": [
+              "windowing/app-window",
+              "windowing/splash-screen"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "advanced/navigation-transitions",
+              "advanced/xaml-ui-command",
+              "advanced/ui-settings"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "WinUI-inspired controls including NavigationView, TabView, ContentDialog, TaskDialog, CommandBar, TeachingTip, InfoBar, BreadcrumbBar, NumberBox, RangeSlider, SettingsExpander, and InfoBadge",
+    "FluentAvaloniaTheme with automatic system theme (light/dark/high contrast) and accent color detection on Windows, macOS, and Linux",
+    "Custom icon system with SymbolIcon, FontIcon, BitmapIcon, PathIcon, and ImageIcon supporting Fluent Design icons",
+    "AppWindow with custom title bar support, splash screens, and native windowing integration on Windows",
+    "Frame-based navigation system with page stack management and navigation transition animations",
+    "Cross-platform support for Windows, macOS, Linux, Android, iOS, and WebAssembly",
+    "Published as FluentAvaloniaUI NuGet package targeting net10.0"
+  ],
+  "publicApiSurface": [
+    "FluentAvaloniaTheme (Styling namespace) - theme manager with PreferSystemTheme, PreferUserAccentColor, CustomAccentColor",
+    "NavigationView, NavigationViewItem - WinUI-style navigation sidebar/top bar control",
+    "Frame - page navigation host with GoBack/GoForward and page stack",
+    "TabView, TabViewItem - browser-style tab strip with drag reordering",
+    "ContentDialog - modal dialog with primary/secondary/close buttons",
+    "TaskDialog - feature-rich dialog with commands, radio buttons, checkboxes, and progress",
+    "InfoBar - inline notification bar with severity levels",
+    "TeachingTip - contextual teaching callout control",
+    "InfoBadge - small badge overlay for notification counts/status",
+    "BreadcrumbBar, BreadcrumbBarItem - hierarchical navigation breadcrumb",
+    "CommandBar, CommandBarButton, CommandBarToggleButton, CommandBarSeparator - app toolbar",
+    "NumberBox - numeric input with expression evaluation support",
+    "RangeSlider - dual-thumb range selection slider",
+    "SettingsExpander, SettingsExpanderItem - expandable settings group",
+    "SymbolIcon, FontIcon, BitmapIcon, PathIcon, ImageIcon, IconSourceElement - icon elements",
+    "AppWindow, AppWindowTitleBar - custom window chrome and title bar",
+    "NavigationTransitionInfo - page transition animations (DrillIn, Entrance, Slide, Suppress)",
+    "XamlUICommand, StandardUICommand - reusable command with icon/label",
+    "FAUISettings - global animation and behavior settings",
+    "Color2 - extended color struct with HSV/HSL manipulation"
+  ]
+}

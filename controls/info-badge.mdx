@@ -1,0 +1,187 @@
+---
+title: 'InfoBadge: Notification count and status badge overlay'
+description: 'Overlay numeric counts, icons, or dot indicators on controls in FluentAvalonia using InfoBadge. Ideal for unread counts in NavigationViewItem.'
+keywords: ['InfoBadge', 'FluentAvalonia', 'badge', 'notification', 'count', 'NavigationView', 'Avalonia']
+---
+
+`InfoBadge` is a small overlay control used to draw attention to a notification count, status change, or new content within your app. It renders as a compact pill, dot, or icon badge that sits on or near another control. The most common use case is attaching an unread-message count to a `NavigationViewItem`, but `InfoBadge` works anywhere a lightweight notification indicator is needed.
+
+## Installation
+
+Add the FluentAvalonia namespace to your XAML file before using any of its controls:
+
+```xml
+xmlns:ui="using:FluentAvalonia.UI.Controls"
+```
+
+## Badge variants
+
+`InfoBadge` automatically selects its visual style based on which properties are set.
+
+<CardGroup cols={3}>
+  <Card title="Dot badge" icon="circle">
+    No `Value` or `IconSource` set. Renders as a small filled dot — use for "new content available" without a specific count.
+  </Card>
+  <Card title="Numeric badge" icon="hash">
+    `Value` set to a non-negative integer. Renders the number inside a pill shape.
+  </Card>
+  <Card title="Icon badge" icon="image">
+    `IconSource` set to any `IconSource`. Renders the icon inside the badge shape.
+  </Card>
+</CardGroup>
+
+## Value property
+
+Set `Value` to a non-negative integer to display a count. The default value is `-1`, which hides the number and renders the dot variant instead.
+
+```xml
+<!-- Dot badge (Value = -1, the default) -->
+<ui:InfoBadge />
+
+<!-- Numeric badge -->
+<ui:InfoBadge Value="5" />
+
+<!-- Large count -->
+<ui:InfoBadge Value="128" />
+```
+
+<Note>
+There is no built-in overflow display (e.g., "99+"). If you want to cap the displayed number, bind `Value` to a computed property in your view model that clamps the raw count.
+</Note>
+
+## IconSource badge
+
+Set `IconSource` to replace the number with an icon. Any `IconSource` subtype works: `SymbolIconSource`, `FontIconSource`, or `BitmapIconSource`.
+
+```xml
+<!-- Symbol icon badge -->
+<ui:InfoBadge>
+    <ui:InfoBadge.IconSource>
+        <ui:SymbolIconSource Symbol="Important" />
+    </ui:InfoBadge.IconSource>
+</ui:InfoBadge>
+
+<!-- Font icon badge -->
+<ui:InfoBadge>
+    <ui:InfoBadge.IconSource>
+        <ui:FontIconSource Glyph="&#xE7BA;" />
+    </ui:InfoBadge.IconSource>
+</ui:InfoBadge>
+```
+
+## Embedding in NavigationViewItem
+
+Assign an `InfoBadge` to the `NavigationViewItem.InfoBadge` property to display a badge on a navigation item. The badge renders in the top-right corner of the item's icon in compact mode and at the trailing edge of the item label in expanded mode.
+
+```xml
+<ui:NavigationView PaneDisplayMode="LeftCompact">
+    <ui:NavigationView.MenuItems>
+        <ui:NavigationViewItem Content="Inbox" IconSource="Mail">
+            <ui:NavigationViewItem.InfoBadge>
+                <ui:InfoBadge Value="{Binding UnreadCount}" />
+            </ui:NavigationViewItem.InfoBadge>
+        </ui:NavigationViewItem>
+
+        <ui:NavigationViewItem Content="Notifications" IconSource="Alert">
+            <ui:NavigationViewItem.InfoBadge>
+                <!-- Dot badge — indicates new items without a count -->
+                <ui:InfoBadge />
+            </ui:NavigationViewItem.InfoBadge>
+        </ui:NavigationViewItem>
+
+        <ui:NavigationViewItem Content="Issues" IconSource="Flag">
+            <ui:NavigationViewItem.InfoBadge>
+                <!-- Icon badge — indicates a warning state -->
+                <ui:InfoBadge>
+                    <ui:InfoBadge.IconSource>
+                        <ui:SymbolIconSource Symbol="Important" />
+                    </ui:InfoBadge.IconSource>
+                </ui:InfoBadge>
+            </ui:NavigationViewItem.InfoBadge>
+        </ui:NavigationViewItem>
+    </ui:NavigationView.MenuItems>
+</ui:NavigationView>
+```
+
+## Standalone badge
+
+You can also use `InfoBadge` as a standalone element, positioned manually over another control using a `Grid` or `Canvas`.
+
+```xml
+<Grid Width="48" Height="48">
+    <!-- Base control -->
+    <Button Width="48" Height="48"
+            HorizontalContentAlignment="Center"
+            VerticalContentAlignment="Center">
+        <ui:SymbolIcon Symbol="Mail" />
+    </Button>
+
+    <!-- Badge overlay, top-right corner -->
+    <ui:InfoBadge Value="{Binding UnreadCount}"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Top"
+                  Margin="0,-4,-4,0" />
+</Grid>
+```
+
+## Data binding
+
+Bind `Value` to a view-model property to update the badge count reactively.
+
+<CodeGroup>
+
+```xml XAML
+<ui:NavigationViewItem Content="Messages" IconSource="Mail">
+    <ui:NavigationViewItem.InfoBadge>
+        <ui:InfoBadge Value="{Binding UnreadMessageCount}" />
+    </ui:NavigationViewItem.InfoBadge>
+</ui:NavigationViewItem>
+```
+
+```csharp View model
+public class MainViewModel : ViewModelBase
+{
+    private int _unreadMessageCount;
+
+    public int UnreadMessageCount
+    {
+        get => _unreadMessageCount;
+        set => SetProperty(ref _unreadMessageCount, value);
+    }
+
+    private async Task RefreshUnreadCountAsync()
+    {
+        UnreadMessageCount = await _mailService.GetUnreadCountAsync();
+    }
+}
+```
+
+</CodeGroup>
+
+<Tip>
+Set `Value = 0` rather than hiding the badge element when the count reaches zero. The badge transitions smoothly from a number to a dot state, which signals "no new items" while maintaining the visual anchor point in the layout.
+</Tip>
+
+## Key properties reference
+
+<AccordionGroup>
+  <Accordion title="Value">
+    `int` — The integer displayed in the badge. Default: `-1` (renders as a dot). Set to `0` or higher to display a number.
+  </Accordion>
+  <Accordion title="IconSource">
+    `IconSource` — Replaces the numeric display with an icon. Accepts `SymbolIconSource`, `FontIconSource`, or `BitmapIconSource`. Takes precedence over `Value` when both are set.
+  </Accordion>
+</AccordionGroup>
+
+## Hiding the badge
+
+Remove the badge from view by either collapsing it or by not setting it on the parent control. You can also bind visibility to a count check:
+
+```xml
+<ui:InfoBadge Value="{Binding UnreadCount}"
+              IsVisible="{Binding HasUnread}" />
+```
+
+```csharp
+public bool HasUnread => UnreadCount > 0;
+```

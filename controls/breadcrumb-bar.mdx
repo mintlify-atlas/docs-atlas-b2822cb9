@@ -1,0 +1,183 @@
+---
+title: 'BreadcrumbBar: hierarchical path navigation'
+description: 'Display and navigate a hierarchical location path in FluentAvalonia with BreadcrumbBar. Auto-collapses to an ellipsis when space is constrained.'
+keywords: ['BreadcrumbBar', 'FluentAvalonia', 'breadcrumb', 'navigation', 'path', 'Avalonia']
+---
+
+`BreadcrumbBar` renders a horizontal trail of clickable crumbs representing the current path in a hierarchy—file system locations, category trees, wizard steps, or any other nested structure. When the available width is too narrow to show all crumbs, the control automatically collapses the leading items behind an ellipsis (`…`) button that opens a flyout with the hidden entries.
+
+## Namespace
+
+```xml
+xmlns:ui="using:FluentAvalonia.UI.Controls"
+```
+
+## Basic usage
+
+Bind any `IEnumerable` to `ItemsSource`. Each element becomes one breadcrumb, and its default string representation is used as the label.
+
+```xml
+<ui:BreadcrumbBar ItemsSource="{Binding CurrentPath}"
+                  ItemClicked="BreadcrumbBar_ItemClicked" />
+```
+
+```csharp
+// ViewModel
+public ObservableCollection<string> CurrentPath { get; } = new()
+{
+    "Home", "Documents", "Projects", "FluentAvalonia"
+};
+```
+
+## Custom item template
+
+Use `ItemTemplate` to control how each crumb is rendered when your items are not plain strings.
+
+```xml
+<ui:BreadcrumbBar ItemsSource="{Binding PathNodes}"
+                  ItemClicked="BreadcrumbBar_ItemClicked">
+    <ui:BreadcrumbBar.ItemTemplate>
+        <DataTemplate DataType="{x:Type local:PathNode}">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+                <ui:SymbolIcon Symbol="{Binding Icon}" />
+                <TextBlock Text="{Binding Name}" />
+            </StackPanel>
+        </DataTemplate>
+    </ui:BreadcrumbBar.ItemTemplate>
+</ui:BreadcrumbBar>
+```
+
+## Handling item clicks
+
+The `ItemClicked` event fires whenever the user clicks a crumb. The `BreadcrumbBarItemClickedEventArgs` exposes:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `Item` | `object` | The data object for the clicked crumb |
+| `Index` | `int` | Zero-based index in `ItemsSource` (ellipsis is at index 0 internally; visible crumbs start at 1) |
+
+Use these to truncate your path collection back to the clicked level:
+
+```csharp
+private void BreadcrumbBar_ItemClicked(BreadcrumbBar sender,
+    BreadcrumbBarItemClickedEventArgs e)
+{
+    // Trim everything after the clicked index
+    // e.Index is 1-based for user-visible items
+    int clickedAt = e.Index;
+
+    while (ViewModel.CurrentPath.Count > clickedAt + 1)
+        ViewModel.CurrentPath.RemoveAt(ViewModel.CurrentPath.Count - 1);
+}
+```
+
+<Note>
+By default the last (current) crumb is not interactive. Set `IsLastItemClickEnabled="True"` to make it clickable as well.
+</Note>
+
+## Auto-collapse behaviour
+
+`BreadcrumbBar` uses a custom layout (`BreadcrumbLayout`) that measures all crumbs from right to left. When the total width exceeds the available space, leading crumbs are hidden and replaced by an ellipsis button. Clicking the ellipsis opens a flyout listing the collapsed items—each of which also raises `ItemClicked` when selected.
+
+No configuration is required; auto-collapse is always active. The collapsed items remain in `ItemsSource` and are still accessible programmatically.
+
+<Tip>
+Wrap `BreadcrumbBar` in a container that constrains its width (e.g., a `Grid` column with `Width="*"`) so the layout engine can trigger auto-collapse when the window is resized.
+</Tip>
+
+## Complete XAML + C# example
+
+The following example models a file-system navigator. Clicking a crumb navigates up to that directory level; clicking a folder in the list drills down.
+
+```xml
+<StackPanel Spacing="8">
+    <ui:BreadcrumbBar x:Name="PathBar"
+                      ItemsSource="{Binding CurrentPath}"
+                      ItemClicked="PathBar_ItemClicked" />
+
+    <ListBox ItemsSource="{Binding FolderContents}"
+             SelectionChanged="FolderContents_SelectionChanged">
+        <ListBox.ItemTemplate>
+            <DataTemplate DataType="{x:Type local:FolderEntry}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <ui:SymbolIcon Symbol="Folder" />
+                    <TextBlock Text="{Binding Name}" />
+                </StackPanel>
+            </DataTemplate>
+        </ListBox.ItemTemplate>
+    </ListBox>
+</StackPanel>
+```
+
+```csharp
+public partial class FileBrowserView : UserControl
+{
+    public FileBrowserViewModel ViewModel => (FileBrowserViewModel)DataContext!;
+
+    public FileBrowserView()
+    {
+        InitializeComponent();
+    }
+
+    // User clicked a breadcrumb — navigate back to that level
+    private void PathBar_ItemClicked(BreadcrumbBar sender,
+        BreadcrumbBarItemClickedEventArgs e)
+    {
+        // e.Index is the position of the clicked item in ItemsSource
+        int target = e.Index;
+
+        while (ViewModel.CurrentPath.Count > target + 1)
+            ViewModel.CurrentPath.RemoveAt(ViewModel.CurrentPath.Count - 1);
+
+        ViewModel.LoadContents(e.Item as FolderEntry);
+    }
+
+    // User double-clicked a folder in the list — drill down
+    private void FolderContents_SelectionChanged(object sender,
+        SelectionChangedEventArgs e)
+    {
+        if (e.AddedItems.FirstOrDefault() is FolderEntry folder)
+        {
+            ViewModel.CurrentPath.Add(folder);
+            ViewModel.LoadContents(folder);
+        }
+    }
+}
+```
+
+```csharp
+// ViewModel
+public class FileBrowserViewModel : ViewModelBase
+{
+    public ObservableCollection<FolderEntry> CurrentPath { get; } = new()
+    {
+        new FolderEntry { Name = "Home" }
+    };
+
+    public ObservableCollection<FolderEntry> FolderContents { get; } = new();
+
+    public void LoadContents(FolderEntry folder)
+    {
+        FolderContents.Clear();
+        foreach (var child in folder.GetChildren())
+            FolderContents.Add(child);
+    }
+}
+```
+
+## Key properties
+
+<AccordionGroup>
+  <Accordion title="ItemsSource">
+    `IEnumerable` — The collection of path nodes. The control observes `INotifyCollectionChanged` so adding or removing items updates the display immediately.
+  </Accordion>
+  <Accordion title="ItemTemplate">
+    `IDataTemplate` — Custom template applied to each crumb in both the main bar and the ellipsis flyout.
+  </Accordion>
+  <Accordion title="IsLastItemClickEnabled">
+    `bool` — When `true`, the rightmost (current) crumb raises `ItemClicked` on interaction. Default: `false`.
+  </Accordion>
+  <Accordion title="ItemClicked event">
+    `TypedEventHandler&lt;BreadcrumbBar, BreadcrumbBarItemClickedEventArgs&gt;` — Raised for both visible crumbs and items selected from the collapsed ellipsis flyout.
+  </Accordion>
+</AccordionGroup>

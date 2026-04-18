@@ -1,0 +1,124 @@
+---
+title: 'RangeSlider: Dual-thumb range selection control'
+description: 'Select a numeric range with two draggable thumbs using RangeSlider in FluentAvalonia. Covers orientation, step frequency, range constraints, and tooltip display.'
+keywords: ['RangeSlider', 'FluentAvalonia', 'range', 'slider', 'dual thumb', 'Avalonia']
+---
+
+`RangeSlider` extends the familiar slider pattern with two draggable thumbs — a minimum thumb and a maximum thumb — allowing users to select a numeric range rather than a single value. A highlighted track segment between the thumbs provides clear visual feedback for the selected interval. Use it for price filters, date ranges, or any scenario where both a lower and upper bound must be chosen.
+
+## Installation
+
+Add the FluentAvalonia namespace to your XAML file:
+
+```xml
+xmlns:ui="using:FluentAvalonia.UI.Controls"
+```
+
+## Basic usage
+
+Bind `RangeStart` and `RangeEnd` two-way to capture the selected range. Both properties default to `0` and `100` respectively, mirroring the default `Minimum` (0) and `Maximum` (100).
+
+```xml
+<ui:RangeSlider RangeStart="20"
+                RangeEnd="80"
+                Minimum="0"
+                Maximum="100" />
+```
+
+## Step frequency
+
+`StepFrequency` snaps the thumbs to discrete intervals as the user drags. The default is `1`.
+
+```xml
+<ui:RangeSlider RangeStart="0"
+                RangeEnd="50"
+                Minimum="0"
+                Maximum="100"
+                StepFrequency="5" />
+```
+
+## Minimum range enforcement
+
+`MinimumRange` sets the smallest acceptable gap (in data units) between `RangeStart` and `RangeEnd` during a drag operation. This prevents the thumbs from overlapping.
+
+<Note>
+  `MinimumRange` only applies during interactive drag. Setting `RangeStart` or `RangeEnd` programmatically bypasses this constraint.
+</Note>
+
+```xml
+<ui:RangeSlider RangeStart="10"
+                RangeEnd="90"
+                MinimumRange="20" />
+```
+
+## Orientation
+
+`RangeSlider` inherits the standard `Orientation` property from Avalonia. Set it to `Vertical` to render a vertically oriented slider.
+
+```xml
+<ui:RangeSlider Orientation="Vertical"
+                Height="200"
+                RangeStart="25"
+                RangeEnd="75" />
+```
+
+## Value tooltip
+
+A tooltip showing the current thumb value is displayed while dragging by default. Set `ShowValueToolTip="False"` to hide it, or use `ToolTipStringFormat` to customise the text using a .NET format string.
+
+```xml
+<ui:RangeSlider ShowValueToolTip="True"
+                ToolTipStringFormat="{}{0:F1} kg"
+                RangeStart="60"
+                RangeEnd="90" />
+```
+
+## Handling value changes
+
+The `ValueChanged` event fires whenever `RangeStart` or `RangeEnd` changes. `RangeChangedEventArgs` identifies which thumb moved via the `ChangedProperty` field and exposes both `OldValue` and `NewValue`.
+
+<CodeGroup>
+
+```xml XAML
+<ui:RangeSlider RangeStart="0"
+                RangeEnd="100"
+                ValueChanged="OnRangeChanged" />
+```
+
+```csharp C#
+private void OnRangeChanged(object sender, RangeChangedEventArgs e)
+{
+    if (e.ChangedProperty == RangeSelectorProperty.RangeStartValue)
+        Console.WriteLine($"Start changed: {e.OldValue} → {e.NewValue}");
+    else
+        Console.WriteLine($"End changed:   {e.OldValue} → {e.NewValue}");
+}
+```
+
+</CodeGroup>
+
+## Drag events
+
+Two additional events let you respond to the start and end of a thumb drag without tracking every intermediate value:
+
+| Event | Description |
+|---|---|
+| `ThumbDragStarted` | Fires when the user begins dragging either thumb. |
+| `ThumbDragCompleted` | Fires when the user releases either thumb. |
+
+## Properties
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Minimum` | `double` | `0` | Lower bound of the slider range. |
+| `Maximum` | `double` | `100` | Upper bound of the slider range. |
+| `RangeStart` | `double` | `0` | Position of the minimum thumb. Two-way bindable. |
+| `RangeEnd` | `double` | `100` | Position of the maximum thumb. Two-way bindable. |
+| `StepFrequency` | `double` | `1` | Snap interval for thumb dragging. |
+| `MinimumRange` | `double` | `0` | Minimum gap between `RangeStart` and `RangeEnd` during drag. |
+| `ShowValueToolTip` | `bool` | `true` | Shows a tooltip with the current value while dragging. |
+| `ToolTipStringFormat` | `string` | — | .NET format string for the tooltip text (e.g. `"{}{0:F1}"`). |
+
+<Tip>
+  Combine `StepFrequency` and `MinimumRange` to enforce both discrete steps and a minimum selection width simultaneously.
+</Tip>

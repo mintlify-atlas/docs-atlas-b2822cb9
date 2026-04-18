@@ -1,0 +1,253 @@
+---
+title: 'Icons: Symbol, Font, Bitmap, Path, and Image icons'
+description: 'Display icons in FluentAvalonia using SymbolIcon, FontIcon, BitmapIcon, PathIcon, or ImageIcon. Covers the difference between IconElement and IconSource types.'
+keywords: ['SymbolIcon', 'FontIcon', 'BitmapIcon', 'PathIcon', 'ImageIcon', 'IconSource', 'FluentAvalonia', 'icons', 'Avalonia']
+---
+
+FluentAvalonia ships two parallel icon hierarchies. **IconElement** (e.g. `SymbolIcon`, `FontIcon`) is a visual control you place directly in the layout tree. **IconSource** (e.g. `SymbolIconSource`, `FontIconSource`) is a lightweight data object consumed by other controls — such as `NavigationViewItem`, `CommandBarButton`, or `SettingsExpander` — via their `IconSource` properties. Use `IconSourceElement` when you need to display an `IconSource` object in a place that expects a plain control.
+
+## Installation
+
+Add the FluentAvalonia namespace to your XAML file:
+
+```xml
+xmlns:ui="using:FluentAvalonia.UI.Controls"
+```
+
+---
+
+## SymbolIcon
+
+`SymbolIcon` renders a glyph from the bundled Fluent Symbols font. The `Symbol` enum maps friendly names to Unicode code points, so you never need to remember glyph values.
+
+```xml
+<ui:SymbolIcon Symbol="Home" />
+<ui:SymbolIcon Symbol="Settings" FontSize="24" />
+<ui:SymbolIcon Symbol="Back" />
+```
+
+### Common Symbol values
+
+<AccordionGroup>
+  <Accordion title="Navigation and actions">
+
+| Symbol | Description |
+|---|---|
+| `Symbol.Home` | Home glyph |
+| `Symbol.Back` | Back arrow |
+| `Symbol.Forward` | Forward arrow |
+| `Symbol.Settings` | Gear icon |
+| `Symbol.Add` | Plus sign |
+| `Symbol.Cancel` | Close / cancel |
+| `Symbol.Delete` | Trash can |
+| `Symbol.Save` | Save / floppy disk |
+| `Symbol.Share` | Share arrow |
+| `Symbol.Search` | Magnifying glass |
+
+  </Accordion>
+  <Accordion title="Media and content">
+
+| Symbol | Description |
+|---|---|
+| `Symbol.Play` | Play button |
+| `Symbol.Pause` | Pause button |
+| `Symbol.Stop` | Stop button |
+| `Symbol.Mute` | Speaker muted |
+| `Symbol.Camera` | Camera |
+| `Symbol.Photo` | Picture / image |
+| `Symbol.Video` | Video camera |
+| `Symbol.Audio` | Audio / headphones |
+| `Symbol.Folder` | Folder |
+| `Symbol.Document` | Document page |
+
+  </Accordion>
+</AccordionGroup>
+
+### SymbolIcon properties
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Symbol` | `Symbol` | — | The Fluent symbol glyph to display. |
+| `FontSize` | `double` | `18` | Size of the rendered glyph in device-independent pixels. |
+| `Foreground` | `IBrush` | inherited | Fill colour of the glyph. |
+
+---
+
+## FontIcon
+
+`FontIcon` displays a single Unicode glyph from any font family on the system or embedded in your project. Use it when you need a glyph from a third-party icon font such as Material Icons or Segoe MDL2 Assets.
+
+```xml
+<ui:FontIcon FontFamily="Segoe MDL2 Assets"
+             Glyph="&#xE700;"
+             FontSize="20" />
+```
+
+### FontIcon properties
+
+| Property | Type | Description |
+|---|---|---|
+| `Glyph` | `string` | The Unicode character(s) to render (e.g. `"&#xE700;"` or a literal character). |
+| `FontFamily` | `FontFamily` | Font family to use for rendering. |
+| `FontSize` | `double` | Size of the rendered glyph. |
+| `FontWeight` | `FontWeight` | Weight (e.g. `Bold`, `Regular`). |
+| `FontStyle` | `FontStyle` | Style (e.g. `Italic`). |
+| `Foreground` | `IBrush` | Fill colour. |
+
+---
+
+## BitmapIcon
+
+`BitmapIcon` displays a bitmap image referenced by a URI. Optionally render it monochrome (tinted to the foreground colour) by setting `ShowAsMonochrome="True"`.
+
+```xml
+<ui:BitmapIcon UriSource="avares://MyApp/Assets/logo.png" />
+
+<ui:BitmapIcon UriSource="avares://MyApp/Assets/icon.png"
+               ShowAsMonochrome="True" />
+```
+
+### BitmapIcon properties
+
+| Property | Type | Description |
+|---|---|---|
+| `UriSource` | `Uri` | URI of the bitmap. Use `avares://` for embedded assets. |
+| `ShowAsMonochrome` | `bool` | Renders the bitmap using only the foreground colour when `true`. |
+
+---
+
+## PathIcon
+
+`PathIcon` renders an Avalonia `Geometry` as a scalable vector icon, inheriting its fill from `Foreground`. Pass an SVG path string directly to `Data`.
+
+```xml
+<ui:PathIcon Data="M12 2 L2 7 L12 12 L22 7 Z" />
+```
+
+---
+
+## ImageIcon
+
+`ImageIcon` accepts any `IImage` (bitmap, drawing, SVG via plugins) as its source. Use it when you have an image object rather than a URI.
+
+```xml
+<ui:ImageIcon>
+    <ui:ImageIcon.Source>
+        <Bitmap>/Assets/my-image.png</Bitmap>
+    </ui:ImageIcon.Source>
+</ui:ImageIcon>
+```
+
+---
+
+## IconSource variants
+
+Each `IconElement` type has a corresponding `IconSource` counterpart. `IconSource` objects are plain `AvaloniaObject` instances with no visual presence of their own — they carry property values that host controls (such as `CommandBarButton` or `NavigationViewItem`) use to construct the actual icon element internally.
+
+<Tip>
+  Prefer `IconSource` when a control's property is typed as `IconSource`. Use an `IconElement` only when you are adding an icon directly to the visual tree.
+</Tip>
+
+| IconElement | IconSource | Notes |
+|---|---|---|
+| `SymbolIcon` | `SymbolIconSource` | Same `Symbol` property. |
+| `FontIcon` | `FontIconSource` | Same `Glyph`, `FontFamily`, `FontSize` properties. |
+| `BitmapIcon` | `BitmapIconSource` | Same `UriSource`, `ShowAsMonochrome` properties. |
+| `PathIcon` | `PathIconSource` | Same `Data` property. |
+| `ImageIcon` | `ImageIconSource` | Same `Source` property. |
+
+All `IconSource` types share a `Foreground` property inherited from the base `IconSource` class.
+
+### IconSource examples
+
+<CodeGroup>
+
+```xml SymbolIconSource
+<ui:NavigationViewItem Content="Home">
+    <ui:NavigationViewItem.IconSource>
+        <ui:SymbolIconSource Symbol="Home" />
+    </ui:NavigationViewItem.IconSource>
+</ui:NavigationViewItem>
+```
+
+```xml FontIconSource
+<ui:CommandBarButton Label="Bold">
+    <ui:CommandBarButton.IconSource>
+        <ui:FontIconSource FontFamily="Segoe MDL2 Assets"
+                           Glyph="&#xE8DD;" />
+    </ui:CommandBarButton.IconSource>
+</ui:CommandBarButton>
+```
+
+```xml BitmapIconSource
+<ui:SettingsExpander Header="Appearance">
+    <ui:SettingsExpander.IconSource>
+        <ui:BitmapIconSource UriSource="avares://MyApp/Assets/palette.png"
+                             ShowAsMonochrome="True" />
+    </ui:SettingsExpander.IconSource>
+</ui:SettingsExpander>
+```
+
+```xml PathIconSource
+<ui:CommandBarButton Label="Star">
+    <ui:CommandBarButton.IconSource>
+        <ui:PathIconSource Data="M12 2 L15 8 L22 9 L17 14 L18 21 L12 18 L6 21 L7 14 L2 9 L9 8 Z" />
+    </ui:CommandBarButton.IconSource>
+</ui:CommandBarButton>
+```
+
+</CodeGroup>
+
+### String shorthand
+
+`IconSource` supports a `TypeConverter` that auto-converts a plain string. The converter tries (in order):
+
+<Steps>
+  <Step title="Symbol name">
+    If the string matches a `Symbol` enum member (e.g. `"Home"`), a `SymbolIconSource` is returned.
+  </Step>
+  <Step title="Path geometry">
+    If the string is a valid SVG path, a `PathIconSource` is returned.
+  </Step>
+  <Step title="URI">
+    If the string is a valid URI, a `BitmapIconSource` is returned.
+  </Step>
+  <Step title="Glyph fallback">
+    Otherwise, a `FontIconSource` is created with the string as the glyph.
+  </Step>
+</Steps>
+
+This means you can write shorthand directly in XAML:
+
+```xml
+<!-- These two lines are equivalent -->
+<ui:NavigationViewItem IconSource="Home" Content="Home" />
+<ui:NavigationViewItem Content="Home">
+    <ui:NavigationViewItem.IconSource>
+        <ui:SymbolIconSource Symbol="Home" />
+    </ui:NavigationViewItem.IconSource>
+</ui:NavigationViewItem>
+```
+
+---
+
+## IconSourceElement
+
+`IconSourceElement` is an `IconElement` that wraps an `IconSource` object, letting you render an `IconSource` anywhere a control is expected.
+
+```xml
+<!-- Render an IconSource inside a plain content area -->
+<ui:IconSourceElement>
+    <ui:IconSourceElement.IconSource>
+        <ui:SymbolIconSource Symbol="Settings" />
+    </ui:IconSourceElement.IconSource>
+</ui:IconSourceElement>
+```
+
+Use `IconSourceElement` when you have an `IconSource` stored in a view-model and need to bind it into a content slot that expects a visual element rather than an icon data object.
+
+```xml
+<ContentControl>
+    <ui:IconSourceElement IconSource="{Binding MyIconSource}" />
+</ContentControl>
+```

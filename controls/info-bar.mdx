@@ -1,0 +1,227 @@
+---
+title: 'InfoBar: Inline notification bar for app messages'
+description: 'Display persistent or dismissable in-layout notifications in FluentAvalonia with InfoBar. Supports four severity levels, action buttons, and close events.'
+keywords: ['InfoBar', 'FluentAvalonia', 'notification', 'alert', 'severity', 'Avalonia']
+---
+
+`InfoBar` is an inline notification bar designed for essential app-wide or view-specific messages. Unlike a flyout or toast, `InfoBar` occupies space in the layout and does not float over other content — it expands and collapses in place when its `IsOpen` property changes. Use it to surface persistent status information such as connectivity warnings, background task completion, or validation summaries that the user should notice before continuing.
+
+## Installation
+
+Add the FluentAvalonia namespace to your XAML file before using any of its controls:
+
+```xml
+xmlns:ui="using:FluentAvalonia.UI.Controls"
+```
+
+## Basic usage
+
+Place `InfoBar` inline in a layout panel. Set `IsOpen="True"` to make it visible and `Severity` to match the nature of your message.
+
+```xml
+<StackPanel Spacing="8">
+    <ui:InfoBar IsOpen="True"
+                Severity="Warning"
+                Title="Limited connectivity"
+                Message="Some features may be unavailable while offline." />
+
+    <!-- rest of the page content -->
+    <TextBlock Text="Main content" />
+</StackPanel>
+```
+
+## InfoBarSeverity
+
+The `Severity` property applies a consistent color scheme, icon, and accessible role to the bar. Choose the value that most accurately reflects the criticality of the message.
+
+<AccordionGroup>
+  <Accordion title="Informational (default)">
+    Neutral blue styling. Use for general information that is helpful but not urgent — feature announcements, tips, or status updates.
+  </Accordion>
+  <Accordion title="Success">
+    Green styling. Use to confirm that a long-running or background task completed successfully.
+  </Accordion>
+  <Accordion title="Warning">
+    Yellow styling. Use for conditions that might cause a problem in the future but do not require immediate action — low disk space, expiring tokens.
+  </Accordion>
+  <Accordion title="Error">
+    Red styling. Use to report an error or problem that has already occurred and may need the user's intervention.
+  </Accordion>
+</AccordionGroup>
+
+## Showing and hiding
+
+Toggle visibility by setting `IsOpen` in XAML or C#. The bar animates in and out when the value changes.
+
+<CodeGroup>
+
+```xml XAML binding
+<ui:InfoBar IsOpen="{Binding ShowSyncError}"
+            Severity="Error"
+            Title="Sync failed"
+            Message="Check your connection and try again." />
+```
+
+```csharp Programmatic toggle
+// Show
+SyncErrorBar.IsOpen = true;
+
+// Hide after a delay
+await Task.Delay(TimeSpan.FromSeconds(5));
+SyncErrorBar.IsOpen = false;
+```
+
+</CodeGroup>
+
+## Title and message
+
+Use `Title` for a short, bold label and `Message` for the supporting detail text. Both are plain strings.
+
+```xml
+<ui:InfoBar IsOpen="True"
+            Severity="Success"
+            Title="Export complete"
+            Message="Your report has been saved to the Downloads folder." />
+```
+
+## Action button
+
+Assign any `Control` to `ActionButton` to render it inline at the trailing edge of the bar. A `Button` or `HyperlinkButton` works best here.
+
+```xml
+<ui:InfoBar IsOpen="True"
+            Severity="Informational"
+            Title="Update available"
+            Message="Version 3.2 is ready to install.">
+    <ui:InfoBar.ActionButton>
+        <Button Content="Install now" Click="InstallButton_Click" />
+    </ui:InfoBar.ActionButton>
+</ui:InfoBar>
+```
+
+```csharp
+private void InstallButton_Click(object sender, RoutedEventArgs e)
+{
+    UpdateInfoBar.IsOpen = false;
+    StartInstallAsync();
+}
+```
+
+## Dismissal and close behavior
+
+By default, `InfoBar` shows a close button that sets `IsOpen = false` when tapped (`IsClosable = true`). Set `IsClosable = false` to make the bar persistent — useful for critical errors that require explicit action rather than passive dismissal.
+
+```xml
+<!-- Persistent bar — user cannot close it directly -->
+<ui:InfoBar IsOpen="{Binding IsOffline}"
+            Severity="Error"
+            Title="No connection"
+            Message="The app is running in offline mode."
+            IsClosable="False" />
+```
+
+### Close events
+
+<AccordionGroup>
+  <Accordion title="CloseButtonClick">
+    Fires immediately when the user taps the close button, before the bar begins to close.
+  </Accordion>
+  <Accordion title="Closing">
+    Fires just before the bar begins to close. `InfoBarClosingEventArgs.Reason` indicates whether the closure was triggered by `CloseButton` or `Programmatic`. Set `args.Cancel = true` to prevent the bar from closing.
+  </Accordion>
+  <Accordion title="Closed">
+    Fires after the bar has finished closing. `InfoBarClosedEventArgs.Reason` carries the same `InfoBarCloseReason` value.
+  </Accordion>
+</AccordionGroup>
+
+```csharp
+private void OnInfoBarClosing(InfoBar sender, InfoBarClosingEventArgs args)
+{
+    // Prevent close if a critical condition is still active
+    if (IsCriticalConditionActive && args.Reason == InfoBarCloseReason.CloseButton)
+    {
+        args.Cancel = true;
+    }
+}
+```
+
+## Custom icon
+
+Override the default severity icon by setting `IconSource` to any `IconSource` subtype. Set `IsIconVisible = false` to hide the icon entirely.
+
+```xml
+<ui:InfoBar IsOpen="True"
+            Severity="Informational"
+            Title="Maintenance window"
+            Message="Scheduled maintenance starts at 02:00 UTC.">
+    <ui:InfoBar.IconSource>
+        <ui:SymbolIconSource Symbol="Clock" />
+    </ui:InfoBar.IconSource>
+</ui:InfoBar>
+```
+
+## Programmatic usage example
+
+The following pattern shows and auto-dismisses a success bar after a save operation completes.
+
+```csharp
+private async Task SaveAndNotifyAsync()
+{
+    try
+    {
+        await SaveDocumentAsync();
+
+        StatusBar.Severity = InfoBarSeverity.Success;
+        StatusBar.Title = "Saved";
+        StatusBar.Message = "Your document was saved successfully.";
+        StatusBar.IsOpen = true;
+
+        await Task.Delay(TimeSpan.FromSeconds(4));
+        StatusBar.IsOpen = false;
+    }
+    catch (Exception ex)
+    {
+        StatusBar.Severity = InfoBarSeverity.Error;
+        StatusBar.Title = "Save failed";
+        StatusBar.Message = ex.Message;
+        StatusBar.IsClosable = true;
+        StatusBar.IsOpen = true;
+    }
+}
+```
+
+## Key properties reference
+
+<AccordionGroup>
+  <Accordion title="IsOpen">
+    `bool` — Controls whether the bar is visible. Default: `false`.
+  </Accordion>
+  <Accordion title="Severity">
+    `InfoBarSeverity` — Sets the color scheme and icon. Values: `Informational`, `Success`, `Warning`, `Error`.
+  </Accordion>
+  <Accordion title="Title">
+    `string` — Short bold label at the start of the bar.
+  </Accordion>
+  <Accordion title="Message">
+    `string` — Supporting detail text displayed after the title.
+  </Accordion>
+  <Accordion title="ActionButton">
+    `Control` — An interactive control (typically a `Button` or `HyperlinkButton`) placed at the trailing edge.
+  </Accordion>
+  <Accordion title="IsClosable">
+    `bool` — Shows or hides the close button. Default: `true`.
+  </Accordion>
+  <Accordion title="IconSource">
+    `IconSource` — Custom icon that replaces the default severity icon.
+  </Accordion>
+  <Accordion title="IsIconVisible">
+    `bool` — Whether the icon area is shown. Default: `true`.
+  </Accordion>
+  <Accordion title="CloseButtonCommand / CloseButtonCommandParameter">
+    Bind an `ICommand` to the close button instead of (or in addition to) the `CloseButtonClick` event.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+Place `InfoBar` at the top of the content area (above the main scroll region) so it remains visible without requiring the user to scroll. For view-specific errors, place it directly above the affected form controls.
+</Tip>

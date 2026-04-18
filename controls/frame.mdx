@@ -1,0 +1,297 @@
+---
+title: 'Frame: page navigation with history stack'
+description: 'Navigate between pages in FluentAvalonia using Frame. Covers back/forward stacks, navigation parameters, transition animations, and custom page factories.'
+keywords: ['Frame', 'FluentAvalonia', 'navigation', 'page', 'back stack', 'UserControl', 'Avalonia']
+---
+
+`Frame` is a `ContentControl` that manages navigation between `UserControl` pages (equivalent to WinUI's `Page` type). It maintains a backward and forward history stack, fires lifecycle events on pages as they enter and leave the view, and supports animated transitions. Use `Frame` whenever your app needs multi-step navigation with browser-like back/forward semantics—especially when paired with `NavigationView`.
+
+## Basic setup
+
+Add `Frame` to your layout and call `Navigate(Type)` to display the first page.
+
+```xml
+xmlns:ui="using:FluentAvalonia.UI.Controls"
+
+<ui:Frame x:Name="ContentFrame" />
+```
+
+```csharp
+// Navigate to a page on startup
+ContentFrame.Navigate(typeof(HomePage));
+```
+
+## Navigation methods
+
+<AccordionGroup>
+  <Accordion title="Navigate(Type)">
+    Navigates to a new instance of the given type. Clears the forward stack and pushes the previous page onto the back stack.
+
+    ```csharp
+    ContentFrame.Navigate(typeof(BrowsePage));
+    ```
+  </Accordion>
+  <Accordion title="Navigate(Type, object)">
+    Navigates and passes a parameter to the destination page. Retrieve it from `NavigationEventArgs.Parameter` in the page's `NavigatedTo` handler.
+
+    ```csharp
+    ContentFrame.Navigate(typeof(DetailPage), itemId);
+    ```
+  </Accordion>
+  <Accordion title="Navigate(Type, object, NavigationTransitionInfo)">
+    Override the entry animation for this specific navigation.
+
+    ```csharp
+    ContentFrame.Navigate(typeof(DetailPage), itemId,
+        new SlideNavigationTransitionInfo
+        {
+            Effect = SlideNavigationTransitionEffect.FromRight
+        });
+    ```
+  </Accordion>
+  <Accordion title="NavigateToType(Type, object, FrameNavigationOptions)">
+    Full-control overload. `FrameNavigationOptions` lets you skip adding this navigation to the history stack or specify a transition.
+
+    ```csharp
+    ContentFrame.NavigateToType(typeof(SplashPage), null,
+        new FrameNavigationOptions { IsNavigationStackEnabled = false });
+    ```
+  </Accordion>
+  <Accordion title="NavigateFromObject(object, FrameNavigationOptions)">
+    Resolves a page from an arbitrary object (e.g., a view-model instance) via `INavigationPageFactory`. Requires `NavigationPageFactory` to be set.
+
+    ```csharp
+    ContentFrame.NavigateFromObject(myViewModel);
+    ```
+  </Accordion>
+  <Accordion title="GoBack() / GoForward()">
+    Navigate to the top entry of the back or forward stack respectively. Both accept an optional `NavigationTransitionInfo` override.
+
+    ```csharp
+    if (ContentFrame.CanGoBack)   ContentFrame.GoBack();
+    if (ContentFrame.CanGoForward) ContentFrame.GoForward();
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## History stacks
+
+`BackStack` and `ForwardStack` are `IList<PageStackEntry>` collections. Each `PageStackEntry` holds `SourcePageType`, `Parameter`, and `NavigationTransitionInfo`.
+
+```csharp
+// How deep is the back stack?
+int depth = ContentFrame.BackStackDepth;
+
+// Manually clear forward history
+ContentFrame.ForwardStack.Clear();
+```
+
+Set `CacheSize` (default: 10) to control how many pages are kept in memory. Set `IsNavigationStackEnabled = false` to disable history recording entirely for a Frame used as a simple content switcher.
+
+## NavigationMode enum
+
+Every navigation carries a `NavigationMode` value in its event args:
+
+| Value | Meaning |
+|-------|---------|
+| `New` | A new page is being navigated to |
+| `Back` | Going backward through history |
+| `Forward` | Going forward through history |
+| `Refresh` | Reloading the current page (possibly with new data) |
+
+## Page lifecycle events
+
+Because Avalonia has no `Page` base class, FluentAvalonia uses routed events fired directly on the page `UserControl`:
+
+| Event | Routed event constant | When it fires |
+|-------|----------------------|---------------|
+| Navigating away (cancellable) | `Frame.NavigatingFromEvent` | Before leaving the current page |
+| Navigated away | `Frame.NavigatedFromEvent` | After the page is replaced |
+| Navigated to | `Frame.NavigatedToEvent` | After the new page is loaded |
+
+Subscribe in your page's code-behind:
+
+```csharp
+// In MyPage.axaml.cs constructor
+AddHandler(Frame.NavigatedToEvent, OnNavigatedTo);
+AddHandler(Frame.NavigatingFromEvent, OnNavigatingFrom);
+
+private void OnNavigatedTo(object sender, NavigationEventArgs e)
+{
+    // e.Parameter contains the value passed to Navigate(Type, object)
+    if (e.Parameter is string id)
+        LoadItem(id);
+}
+
+private void OnNavigatingFrom(object sender, NavigatingCancelEventArgs e)
+{
+    // Cancel navigation if there are unsaved changes
+    if (HasUnsavedChanges)
+        e.Cancel = true;
+}
+```
+
+## Frame-level events
+
+| Event | Delegate type | Description |
+|-------|--------------|-------------|
+| `Navigated` | `NavigatedEventHandler` | Fires after every successful navigation |
+| `Navigating` | `NavigatingCancelEventHandler` | Fires before navigation; set `e.Cancel = true` to abort |
+| `NavigationFailed` | `NavigationFailedEventHandler` | Fires when page creation throws an exception |
+| `NavigationStopped` | `NavigationStoppedEventHandler` | Fires when `Navigating` is cancelled |
+
+## INavigationPageFactory
+
+By default `Frame` creates pages via `Activator.CreateInstance(type)`. Implement `INavigationPageFactory` to take over page creation—for example to inject view-models via a dependency-injection container or to support `NavigateFromObject`.
+
+```csharp
+/// <summary>
+/// Factory that resolves pages from the DI container or from
+/// view-model instances passed to NavigateFromObject().
+/// </summary>
+public class AppPageFactory : INavigationPageFactory
+{
+    private readonly IServiceProvider _services;
+
+    public AppPageFactory(IServiceProvider services)
+        => _services = services;
+
+    // Called by Navigate(Type) — return null to fall back to Activator.CreateInstance
+    public Control GetPage(Type srcType)
+        => _services.GetService(srcType) as Control;
+
+    // Called by NavigateFromObject(object) — must not return null
+    public Control GetPageFromObject(object target)
+    {
+        return target switch
+        {
+            HomeViewModel vm => new HomePage { DataContext = vm },
+            DetailViewModel vm => new DetailPage { DataContext = vm },
+            _ => throw new InvalidOperationException(
+                     $"No page registered for {target.GetType().Name}")
+        };
+    }
+}
+```
+
+<Note>
+You do not need to implement both methods. Return `null` from `GetPage` if you only use `NavigateFromObject`, and the Frame will fall back to `Activator.CreateInstance`. Returning `null` from `GetPageFromObject` cancels the navigation.
+</Note>
+
+Assign the factory on the Frame:
+
+```csharp
+ContentFrame.NavigationPageFactory = new AppPageFactory(serviceProvider);
+
+// Now you can navigate by view-model instance
+ContentFrame.NavigateFromObject(new DetailViewModel(selectedItem));
+```
+
+## Serialising navigation state
+
+`GetNavigationState()` serialises the current page, back stack, and forward stack to a string you can persist across app restarts. `SetNavigationState(string)` restores it.
+
+```csharp
+// Save on suspend
+string state = ContentFrame.GetNavigationState();
+ApplicationData.SaveString("navState", state);
+
+// Restore on launch
+if (ApplicationData.TryGetString("navState", out var saved))
+    ContentFrame.SetNavigationState(saved);
+```
+
+Pass `suppressNavigate: true` to restore history without triggering another navigation (the current page is pushed into the back stack instead).
+
+## Integrating Frame with NavigationView
+
+The most common pattern: `NavigationView` hosts a `Frame` as its content, and selection changes drive navigation.
+
+<Steps>
+  <Step title="Declare the layout">
+    Place a `Frame` as the direct content of the `NavigationView`.
+
+    ```xml
+    <ui:NavigationView x:Name="NavView"
+                       PaneDisplayMode="LeftCompact"
+                       IsBackButtonVisible="True"
+                       IsBackEnabled="{Binding #ContentFrame.CanGoBack}"
+                       SelectionChanged="NavView_SelectionChanged"
+                       BackRequested="NavView_BackRequested">
+        <ui:NavigationView.MenuItems>
+            <ui:NavigationViewItem Content="Home"    Tag="home"    IconSource="Home" />
+            <ui:NavigationViewItem Content="Browse"  Tag="browse"  IconSource="Library" />
+            <ui:NavigationViewItem Content="History" Tag="history" IconSource="Tag" />
+        </ui:NavigationView.MenuItems>
+
+        <ui:Frame x:Name="ContentFrame" />
+    </ui:NavigationView>
+    ```
+  </Step>
+  <Step title="Navigate on selection change">
+    Map the `Tag` of the selected item to a page type and call `Navigate`.
+
+    ```csharp
+    private void NavView_SelectionChanged(object sender,
+        NavigationViewSelectionChangedEventArgs e)
+    {
+        if (e.IsSettingsSelected)
+        {
+            ContentFrame.Navigate(typeof(SettingsPage));
+        }
+        else
+        {
+            var tag = (e.SelectedItemContainer as NavigationViewItem)
+                          ?.Tag?.ToString();
+
+            Type destination = tag switch
+            {
+                "home"    => typeof(HomePage),
+                "browse"  => typeof(BrowsePage),
+                "history" => typeof(HistoryPage),
+                _         => null
+            };
+
+            if (destination is not null)
+                ContentFrame.Navigate(destination);
+        }
+
+        // Keep the back button state in sync
+        NavView.IsBackEnabled = ContentFrame.CanGoBack;
+    }
+    ```
+  </Step>
+  <Step title="Wire up the back button">
+    Call `GoBack()` when the user clicks the NavigationView back button, then sync `IsBackEnabled`.
+
+    ```csharp
+    private void NavView_BackRequested(NavigationView sender,
+        NavigationViewBackRequestedEventArgs e)
+    {
+        if (ContentFrame.CanGoBack)
+        {
+            ContentFrame.GoBack();
+            NavView.IsBackEnabled = ContentFrame.CanGoBack;
+        }
+    }
+    ```
+  </Step>
+  <Step title="Set the initial page">
+    Select the first item and navigate on startup.
+
+    ```csharp
+    protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+    {
+        base.OnApplyTemplate(e);
+
+        // Pre-select Home and navigate
+        NavView.SelectedItem = NavView.MenuItems[0];
+        ContentFrame.Navigate(typeof(HomePage));
+    }
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+Bind `IsBackEnabled` to `ContentFrame.CanGoBack` in XAML for the simplest approach. The `CanGoBack` direct property raises `PropertyChanged` automatically whenever the back stack changes.
+</Tip>

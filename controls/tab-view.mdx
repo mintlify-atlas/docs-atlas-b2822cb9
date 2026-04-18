@@ -1,0 +1,317 @@
+---
+title: 'TabView: browser-style tabbed interface'
+description: 'Build a browser-style tabbed UI in FluentAvalonia with TabView. Supports drag reorder, close buttons, dynamic tab creation, and multi-window tear-off.'
+keywords: ['TabView', 'TabViewItem', 'FluentAvalonia', 'tabs', 'drag', 'reorder', 'Avalonia']
+---
+
+`TabView` is a browser-style tab strip paired with a content area. Each `TabViewItem` displays a header label, an optional icon, and a close button. Tabs can be reordered by dragging, new tabs can be added with a built-in `+` button, and closed tabs are handled through an event rather than automatically—giving you full control over the underlying data collection. Use `TabView` for document editors, dashboards, settings panels, or any UI that benefits from parallel, independently closeable views.
+
+## Namespace
+
+```xml
+xmlns:ui="using:FluentAvalonia.UI.Controls"
+```
+
+## Basic XAML usage
+
+Declare `TabViewItem` elements as direct children of `TabView`. Each item takes a `Header` string and an optional `IconSource`.
+
+```xml
+<ui:TabView AddTabButtonClick="TabView_AddButtonClick"
+            TabCloseRequested="TabView_TabCloseRequested">
+    <ui:TabViewItem Header="Document 1" IconSource="Document">
+        <TextBlock Text="Content of Document 1" Margin="16" />
+    </ui:TabViewItem>
+    <ui:TabViewItem Header="Document 2" IconSource="Document">
+        <TextBlock Text="Content of Document 2" Margin="16" />
+    </ui:TabViewItem>
+    <ui:TabViewItem Header="Settings" IconSource="Setting" IsClosable="False">
+        <!-- Settings content -->
+    </ui:TabViewItem>
+</ui:TabView>
+```
+
+```csharp
+private void TabView_AddButtonClick(TabView sender, EventArgs args)
+{
+    int index = (sender.TabItems as IList)!.Count;
+    (sender.TabItems as IList)!.Add(new TabViewItem
+    {
+        Header = $"Document {index}",
+        IconSource = new SymbolIconSource { Symbol = Symbol.Document },
+        Content = new TextBlock { Text = $"Content of Document {index}" }
+    });
+}
+
+private void TabView_TabCloseRequested(TabView sender,
+    TabViewTabCloseRequestedEventArgs args)
+{
+    (sender.TabItems as IList)!.Remove(args.Tab);
+}
+```
+
+<Note>
+`TabCloseRequested` does not remove the tab automatically. You must remove it from `TabItems` yourself, which lets you show a confirmation dialog or save changes before closing.
+</Note>
+
+## Binding to a collection
+
+For dynamic content, bind `TabItems` to an `ObservableCollection` and define a `TabItemTemplate`.
+
+```xml
+<ui:TabView TabItems="{Binding Documents}"
+            AddTabButtonCommand="{Binding AddDocumentCommand}"
+            TabCloseRequested="BoundTabView_TabCloseRequested">
+    <ui:TabView.TabItemTemplate>
+        <DataTemplate DataType="vm:DocumentItem">
+            <ui:TabViewItem Header="{Binding Header}"
+                            Content="{Binding Content}"
+                            IconSource="{Binding IconSource}" />
+        </DataTemplate>
+    </ui:TabView.TabItemTemplate>
+</ui:TabView>
+```
+
+```csharp
+private void BoundTabView_TabCloseRequested(TabView sender,
+    TabViewTabCloseRequestedEventArgs args)
+{
+    if (args.Tab.DataContext is DocumentItem doc)
+        ViewModel.Documents.Remove(doc);
+}
+```
+
+## Tab width modes
+
+Set `TabWidthMode` to control how tab headers are sized.
+
+<Tabs>
+  <Tab title="Equal">
+    All tabs share the available width equally. This is the default.
+
+    ```xml
+    <ui:TabView TabWidthMode="Equal" />
+    ```
+  </Tab>
+  <Tab title="SizeToContent">
+    Each tab is as wide as its `Header` content, up to the resource-defined maximum (`TabViewItemMaxWidth`).
+
+    ```xml
+    <ui:TabView TabWidthMode="SizeToContent" />
+    ```
+  </Tab>
+  <Tab title="Compact">
+    Unselected tabs collapse to show only their icon. The selected tab expands to show its full header.
+
+    ```xml
+    <ui:TabView TabWidthMode="Compact" />
+    ```
+  </Tab>
+</Tabs>
+
+## Drag reorder
+
+`CanReorderTabs` (default `true`) allows the user to drag tabs within the strip to reorder them. `CanDragTabs` (default `false`) additionally enables the tab to be dragged _out_ of the strip as a drag-and-drop data payload, which is required for multi-window tear-off.
+
+```xml
+<ui:TabView CanReorderTabs="True"
+            CanDragTabs="True"
+            AllowDropTabs="True"
+            TabDragStarting="TabView_TabDragStarting"
+            TabDroppedOutside="TabView_TabDroppedOutside" />
+```
+
+### Drag-reorder preview
+
+FluentAvalonia provides an opt-in visual preview while dragging. Enable it globally via `FAUISettings`:
+
+```csharp
+// Call before the first TabView is displayed, e.g., in App.OnFrameworkInitializationCompleted
+FAUISettings.SetUseTabViewDragReorderPreview(true);
+```
+
+<Warning>
+`SetUseTabViewDragReorderPreview(true)` must be called before any `TabView` applies its template. The best place is inside `App.OnFrameworkInitializationCompleted`, before building the main window.
+</Warning>
+
+## Close button behaviour
+
+`CloseButtonOverlayMode` controls when each tab's close button is shown.
+
+| Value | Behaviour |
+|-------|-----------|
+| `Auto` | Framework default — currently maps to `Always` |
+| `Always` | Selected tab always shows close. Unselected tabs also always show close if `IsClosable` is `true` |
+| `OnPointerOver` | Selected tab always shows close. Unselected tabs show close only while the pointer is over them |
+
+Set per-tab with `TabViewItem.IsClosable = false` to permanently hide the close button on a specific tab (useful for pinned or home tabs).
+
+```xml
+<ui:TabView CloseButtonOverlayMode="OnPointerOver">
+    <ui:TabViewItem Header="Home" IsClosable="False" IconSource="Home" />
+    <ui:TabViewItem Header="Document 1" IconSource="Document" />
+</ui:TabView>
+```
+
+## Tab strip header and footer
+
+Place custom controls to the left or right of the tab strip using `TabStripHeader` and `TabStripFooter`.
+
+```xml
+<ui:TabView>
+    <ui:TabView.TabStripHeader>
+        <Image Source="/Assets/logo.png" Height="16" Margin="8,0" />
+    </ui:TabView.TabStripHeader>
+    <ui:TabView.TabStripFooter>
+        <Button Content="Sync" Margin="4,0" />
+    </ui:TabView.TabStripFooter>
+</ui:TabView>
+```
+
+## Keyboard shortcuts
+
+Wire `KeyBinding` gestures directly on the `TabView` to add browser-style shortcuts.
+
+```xml
+<ui:TabView>
+    <ui:TabView.KeyBindings>
+        <KeyBinding Gesture="Ctrl+T" Command="{Binding AddTabCommand}" />
+        <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseTabCommand}" />
+        <KeyBinding Gesture="Ctrl+D1" Command="{Binding SelectTabCommand}"
+                    CommandParameter="1" />
+        <KeyBinding Gesture="Ctrl+D2" Command="{Binding SelectTabCommand}"
+                    CommandParameter="2" />
+    </ui:TabView.KeyBindings>
+</ui:TabView>
+```
+
+## Multi-window tab tear-off
+
+When `CanDragTabs="True"`, dragging a tab outside the strip fires `TabDroppedOutside`. Handle this event to open a new window containing the dropped tab.
+
+```csharp
+private void TabView_TabDroppedOutside(TabView sender,
+    TabViewTabDroppedOutsideEventArgs args)
+{
+    // Remove the tab from this window
+    (sender.TabItems as IList)!.Remove(args.Tab);
+
+    // Open it in a new window
+    var newWindow = new Window
+    {
+        Width = 800,
+        Height = 600,
+        Content = new TabView
+        {
+            TabItems = new ObservableCollection<TabViewItem> { args.Tab }
+        }
+    };
+    newWindow.Show();
+}
+```
+
+<Tip>
+For a complete tear-off implementation including accepting drops into an existing window, handle `TabStripDragOver` and `TabStripDrop` on the receiving `TabView` and pass the `TabViewItem` through the drag data.
+</Tip>
+
+## TabViewItem properties
+
+<AccordionGroup>
+  <Accordion title="Header">
+    `object` — Content displayed in the tab strip (usually a `string`).
+  </Accordion>
+  <Accordion title="HeaderTemplate">
+    `IDataTemplate` — Custom template for the `Header` content.
+  </Accordion>
+  <Accordion title="IconSource">
+    `IconSource` — Icon shown to the left of the header.
+  </Accordion>
+  <Accordion title="IsClosable">
+    `bool` — Whether the close button is shown for this tab. Default: `true`.
+  </Accordion>
+  <Accordion title="Content">
+    `object` — The page or control displayed in the content area when this tab is selected.
+  </Accordion>
+  <Accordion title="CloseRequested (item event)">
+    Raised on the individual `TabViewItem`. Use if you need per-item close logic distinct from the `TabView.TabCloseRequested` event.
+  </Accordion>
+</AccordionGroup>
+
+## Full API in action
+
+<CodeGroup>
+
+```xml MainWindow.axaml
+<ui:TabView x:Name="MainTabView"
+            TabWidthMode="Equal"
+            CloseButtonOverlayMode="OnPointerOver"
+            CanReorderTabs="True"
+            IsAddTabButtonVisible="True"
+            AddTabButtonClick="TabView_AddButtonClick"
+            TabCloseRequested="TabView_TabCloseRequested"
+            TabDroppedOutside="TabView_TabDroppedOutside">
+
+    <ui:TabViewItem Header="Welcome" IsClosable="False" IconSource="Home">
+        <TextBlock Text="Welcome!" Margin="24" FontSize="20" />
+    </ui:TabViewItem>
+</ui:TabView>
+```
+
+```csharp MainWindow.axaml.cs
+private int _tabCounter = 1;
+
+private void TabView_AddButtonClick(TabView sender, EventArgs args)
+{
+    var item = new TabViewItem
+    {
+        Header = $"Document {_tabCounter++}",
+        IconSource = new SymbolIconSource { Symbol = Symbol.Document },
+        Content = new DocumentEditorView()
+    };
+    (sender.TabItems as IList)!.Add(item);
+    sender.SelectedItem = item;
+}
+
+private void TabView_TabCloseRequested(TabView sender,
+    TabViewTabCloseRequestedEventArgs args)
+{
+    (sender.TabItems as IList)!.Remove(args.Tab);
+}
+
+private void TabView_TabDroppedOutside(TabView sender,
+    TabViewTabDroppedOutsideEventArgs args)
+{
+    if ((sender.TabItems as IList)!.Count == 1)
+        return; // Keep at least one tab
+
+    (sender.TabItems as IList)!.Remove(args.Tab);
+
+    var newWindow = new Window
+    {
+        Title = args.Tab.Header?.ToString(),
+        Width = 900, Height = 600,
+        Content = new TabView
+        {
+            TabItems = new ObservableCollection<TabViewItem> { args.Tab },
+            IsAddTabButtonVisible = false
+        }
+    };
+    newWindow.Show();
+}
+```
+
+</CodeGroup>
+
+## Events summary
+
+| Event | Args type | Description |
+|-------|-----------|-------------|
+| `TabCloseRequested` | `TabViewTabCloseRequestedEventArgs` | User clicked the close (×) button |
+| `AddTabButtonClick` | `EventArgs` | User clicked the add (+) button |
+| `TabDroppedOutside` | `TabViewTabDroppedOutsideEventArgs` | Tab dragged outside the strip |
+| `TabDragStarting` | `TabViewTabDragStartingEventArgs` | Drag operation begins |
+| `TabDragCompleted` | `TabViewTabDragCompletedEventArgs` | Drag operation ends |
+| `TabStripDragOver` | `DragEventArgs` | Drag enters the tab strip drop target |
+| `TabStripDrop` | `DragEventArgs` | Item dropped onto the tab strip |
+| `SelectionChanged` | `SelectionChangedEventArgs` | Selected tab changed |
+| `TabItemsChanged` | `NotifyCollectionChangedEventArgs` | `TabItems` collection changed |

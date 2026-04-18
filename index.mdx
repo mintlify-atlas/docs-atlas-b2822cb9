@@ -1,97 +1,91 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "FluentAvalonia: WinUI controls for Avalonia"
+description: "FluentAvalonia brings WinUI-inspired Fluent Design controls and theming to cross-platform Avalonia .NET applications on Windows, macOS, Linux, and more."
 ---
 
-## Setting up
+FluentAvalonia is a control library that ports WinUI 3 controls and the Fluent Design System to [Avalonia](https://avaloniaui.net/), enabling you to build beautiful, native-feeling desktop apps that run across Windows, macOS, Linux, Android, iOS, and WebAssembly. It is published as the `FluentAvaloniaUI` NuGet package.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Add FluentAvalonia to your Avalonia project via NuGet in minutes.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Set up the theme and add your first WinUI-style control.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Theming" icon="palette" href="/theming/fluent-avalonia-theme">
+    Configure light/dark mode, system themes, and custom accent colors.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Controls" icon="grid-2" href="/controls/navigation-view">
+    Explore the full library of WinUI-inspired controls.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## What's included
 
-Everything you need to create world-class documentation.
+FluentAvalonia provides a comprehensive set of controls ported from WinUI 3, along with an extended theming system and native windowing integration.
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+<CardGroup cols={3}>
+  <Card title="NavigationView" icon="sidebar" href="/controls/navigation-view">
+    WinUI-style sidebar and top navigation bar with pane modes.
   </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
+  <Card title="TabView" icon="table-columns" href="/controls/tab-view">
+    Browser-style tab strip with drag reordering and add/close buttons.
   </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
+  <Card title="ContentDialog" icon="window-restore" href="/controls/content-dialog">
+    Modal dialogs with primary, secondary, and close actions.
   </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
+  <Card title="TaskDialog" icon="list-check" href="/controls/task-dialog">
+    Feature-rich dialogs with commands, radio buttons, and progress.
   </Card>
-</Columns>
+  <Card title="CommandBar" icon="toolbar" href="/controls/command-bar">
+    App toolbar with primary actions and overflow menu.
+  </Card>
+  <Card title="InfoBar" icon="circle-info" href="/controls/info-bar">
+    Inline notification bar with severity levels and dismissal.
+  </Card>
+  <Card title="TeachingTip" icon="graduation-cap" href="/controls/teaching-tip">
+    Contextual callout for onboarding and feature discovery.
+  </Card>
+  <Card title="NumberBox" icon="input-numeric" href="/controls/number-box">
+    Numeric input with inline expression evaluation.
+  </Card>
+  <Card title="AppWindow" icon="window-maximize" href="/windowing/app-window">
+    Custom title bar and native windowing integration on Windows.
+  </Card>
+</CardGroup>
 
-## Need inspiration?
+## Getting started
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Steps>
+  <Step title="Install the NuGet package">
+    Add `FluentAvaloniaUI` to your Avalonia project using the .NET CLI or NuGet Package Manager.
+    ```bash
+    dotnet add package FluentAvaloniaUI
+    ```
+  </Step>
+  <Step title="Add the theme to App.axaml">
+    Include `FluentAvaloniaTheme` in your application's styles to enable the Fluent Design System.
+    ```xml App.axaml
+    <Application.Styles>
+        <StyleInclude Source="avares://Avalonia.Themes.Fluent/FluentTheme.axaml"/>
+        <fa:FluentAvaloniaTheme xmlns:fa="using:FluentAvalonia.Styling"/>
+    </Application.Styles>
+    ```
+  </Step>
+  <Step title="Use a control">
+    Add any FluentAvalonia control to your views using the `ui` namespace.
+    ```xml MainWindow.axaml
+    <Window xmlns:ui="using:FluentAvalonia.UI.Controls">
+        <ui:NavigationView>
+            <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItem Content="Home" Tag="home"/>
+            </ui:NavigationView.MenuItems>
+        </ui:NavigationView>
+    </Window>
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  FluentAvalonia v2.x targets Avalonia 11.x. Make sure you are on **Avalonia 11.2.5** or later for the latest FluentAvalonia release (v2.3.0). The 1.x branch (Avalonia 0.10.x) is deprecated.
+</Note>

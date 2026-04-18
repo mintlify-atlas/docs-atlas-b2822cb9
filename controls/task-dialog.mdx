@@ -1,0 +1,338 @@
+---
+title: 'TaskDialog: Rich dialog with commands and progress'
+description: 'Build rich dialogs in FluentAvalonia with TaskDialog. Covers command links, radio buttons, checkboxes, progress bars, footer content, and closing events.'
+keywords: ['TaskDialog', 'FluentAvalonia', 'dialog', 'commands', 'progress', 'Avalonia']
+---
+
+`TaskDialog` is a richer alternative to [`ContentDialog`](/controls/content-dialog) for scenarios that require more than a simple confirmation. It adds support for named command links (large clickable items with descriptions), radio buttons, checkboxes, a progress bar, an expandable footer area, and distinct header/sub-header text with icon support. Use `TaskDialog` when you need to present multiple distinct actions, guide the user through a structured decision, or report long-running operation status alongside the choice.
+
+## Installation
+
+Add the FluentAvalonia namespace to your XAML file before using any of its controls:
+
+```xml
+xmlns:ui="using:FluentAvalonia.UI.Controls"
+```
+
+<Warning>
+When constructing a `TaskDialog` in C# (not XAML), you must set the `XamlRoot` property to the owning `Window` (desktop) or root `TopLevel` before calling `ShowAsync()`. Failing to do so causes a runtime error.
+</Warning>
+
+## Basic usage
+
+The simplest `TaskDialog` shows a header, optional sub-header, and a set of standard buttons drawn from `TaskDialogButton` predefined statics.
+
+```csharp
+var dialog = new TaskDialog
+{
+    Title = "Confirm action",
+    Header = "Remove selected items?",
+    SubHeader = "This operation cannot be undone.",
+    XamlRoot = this, // set to your Window
+    Buttons =
+    {
+        TaskDialogButton.YesButton,
+        TaskDialogButton.NoButton
+    }
+};
+
+var result = await dialog.ShowAsync();
+
+if (result is TaskDialogStandardResult.Yes)
+{
+    await RemoveItemsAsync();
+}
+```
+
+## ShowAsync and results
+
+`ShowAsync()` returns an `object`. For standard predefined buttons the returned value is a `TaskDialogStandardResult` enum. For custom `TaskDialogButton` or `TaskDialogCommand` instances the returned value is whatever you passed as the second argument to their constructor.
+
+```csharp
+var result = await dialog.ShowAsync();
+
+switch (result)
+{
+    case TaskDialogStandardResult.OK:
+        // ...
+        break;
+    case TaskDialogStandardResult.Cancel:
+        // ...
+        break;
+}
+```
+
+## TaskDialogStandardResult
+
+The predefined result values returned by standard buttons.
+
+| Value | Description |
+|---|---|
+| `None` | No button was tapped (programmatic close). |
+| `OK` | The **OK** standard button was tapped. |
+| `Cancel` | The **Cancel** standard button was tapped. |
+| `Yes` | The **Yes** standard button was tapped. |
+| `No` | The **No** standard button was tapped. |
+| `Retry` | The **Retry** standard button was tapped. |
+| `Close` | The **Close** standard button was tapped. |
+
+## Buttons vs commands
+
+`TaskDialog` has two separate collections for interactive elements.
+
+### TaskDialogButton
+
+`Buttons` renders small buttons in a row at the bottom of the dialog, similar to `ContentDialog`. Use predefined statics for common patterns or create custom instances with a label and a return value.
+
+```csharp
+// Predefined statics
+dialog.Buttons.Add(TaskDialogButton.OKButton);
+dialog.Buttons.Add(TaskDialogButton.CancelButton);
+
+// Custom button with a typed result
+var saveButton = new TaskDialogButton("Save draft", "save_draft")
+{
+    IconSource = new SymbolIconSource { Symbol = Symbol.Save }
+};
+
+saveButton.Click += (_, _) => { /* additional handling */ };
+dialog.Buttons.Add(saveButton);
+```
+
+<Note>
+Predefined buttons (`OKButton`, `CancelButton`, etc.) are sealed. You cannot attach `Command`, `IconSource`, or `Click` handlers to them — they are intentionally simple. Create a custom `TaskDialogButton` when you need those features.
+</Note>
+
+### TaskDialogCommand
+
+`Commands` renders large command-link items in the body of the dialog. Each command shows a primary label and an optional `Description` line below it. Commands are ideal when each choice warrants a brief explanation.
+
+```csharp
+var openCommand = new TaskDialogCommand
+{
+    Text = "Open in editor",
+    Description = "Opens the file in the default text editor for this file type.",
+    IconSource = new SymbolIconSource { Symbol = Symbol.OpenFile },
+    ClosesOnInvoked = true  // dialog closes automatically (default)
+};
+
+openCommand.Click += (_, _) => OpenInEditor();
+
+dialog.Commands.Add(openCommand);
+```
+
+<AccordionGroup>
+  <Accordion title="ClosesOnInvoked">
+    `bool` — When `true` (the default), the dialog closes as soon as the command is invoked. Set to `false` if you need to perform validation or async work before closing manually.
+  </Accordion>
+  <Accordion title="Description">
+    `string` — A second line of text rendered below the command label, giving users more context before they choose.
+  </Accordion>
+</AccordionGroup>
+
+## Radio buttons and checkboxes
+
+Embed `TaskDialogRadioButton` and `TaskDialogCheckBox` items directly in the dialog's content area to gather structured input without needing a separate form control.
+
+```csharp
+var dialog = new TaskDialog
+{
+    Title = "Export options",
+    Header = "Choose export format",
+    XamlRoot = this,
+    Content = new StackPanel
+    {
+        Spacing = 8,
+        Children =
+        {
+            new TaskDialogRadioButton { Text = "PDF", IsChecked = true },
+            new TaskDialogRadioButton { Text = "DOCX" },
+            new TaskDialogRadioButton { Text = "HTML" },
+            new TaskDialogCheckBox { Text = "Include attachments" }
+        }
+    },
+    Buttons = { TaskDialogButton.OKButton, TaskDialogButton.CancelButton }
+};
+```
+
+## Progress bar
+
+Set `ShowProgressBar = true` to reveal a `ProgressBar` in the dialog header area. Control its visual state via the `SetProgressBarState()` method, which accepts a `TaskDialogProgressState` value and a progress percentage.
+
+### TaskDialogProgressState
+
+| Value | Description |
+|---|---|
+| `Normal` | Standard blue progress bar. |
+| `Error` | Red progress bar indicating a failure state. |
+| `Suspended` | Yellow/paused progress bar indicating a suspended state. |
+| `Indeterminate` | Animated indeterminate progress bar; ignores the percentage value. |
+
+```csharp
+var dialog = new TaskDialog
+{
+    Title = "Uploading files",
+    Header = "Upload in progress",
+    SubHeader = "Please wait while your files are uploaded.",
+    ShowProgressBar = true,
+    XamlRoot = this,
+    Buttons = { TaskDialogButton.CancelButton }
+};
+
+// Show the dialog without awaiting so we can update progress
+_ = dialog.ShowAsync();
+
+for (int i = 0; i <= 100; i += 10)
+{
+    dialog.SetProgressBarState(i, TaskDialogProgressState.Normal);
+    await Task.Delay(200);
+}
+
+// Signal completion
+dialog.SetProgressBarState(100, TaskDialogProgressState.Normal);
+dialog.Hide(TaskDialogStandardResult.OK);
+```
+
+<Tip>
+Combine `Indeterminate` at the start of an operation with a switch to `Normal` once you have progress data. This avoids showing a stuck-looking bar before the first progress event arrives.
+</Tip>
+
+## Footer content
+
+Use the `Footer` property to add supplementary content (help links, legal text, or status information) below the command and button areas. Control footer visibility with `FooterVisibility`.
+
+```csharp
+dialog.Footer = new HyperlinkButton
+{
+    Content = "Learn more about this action",
+    NavigateUri = new Uri("https://docs.example.com/actions")
+};
+
+dialog.FooterVisibility = TaskDialogFooterVisibility.Auto; // visible only when Footer is set
+```
+
+`FooterVisibility` accepts:
+
+| Value | Description |
+|---|---|
+| `Auto` | Footer area is shown only when `Footer` content is present. |
+| `Always` | Footer area is always visible. |
+| `Never` | Footer area is always hidden. |
+
+Toggle the footer's expanded state with `IsFooterExpanded`.
+
+## Key properties reference
+
+<AccordionGroup>
+  <Accordion title="Title">
+    `string` — The window caption shown in the dialog's title bar. Has no effect on platforms without windowing support.
+  </Accordion>
+  <Accordion title="Header">
+    `string` — The large heading text rendered inside the dialog body.
+  </Accordion>
+  <Accordion title="SubHeader">
+    `string` — Smaller text rendered directly below `Header`, providing additional context.
+  </Accordion>
+  <Accordion title="IconSource">
+    `IconSource` — An icon shown alongside `Header`. Use `SymbolIconSource`, `BitmapIconSource`, or `FontIconSource`.
+  </Accordion>
+  <Accordion title="Buttons">
+    `IList<TaskDialogButton>` — Bottom-row buttons rendered in a horizontal strip.
+  </Accordion>
+  <Accordion title="Commands">
+    `IList<TaskDialogCommand>` — Full-width command-link items rendered in the dialog body.
+  </Accordion>
+  <Accordion title="ShowProgressBar">
+    `bool` — Shows or hides the progress bar in the header area.
+  </Accordion>
+  <Accordion title="HeaderBackground / HeaderForeground / IconForeground">
+    `IBrush` — Override the default colors for the header region and icon.
+  </Accordion>
+  <Accordion title="XamlRoot">
+    `Visual` — **Required for code-behind dialogs.** Set to the owning `Window` on desktop or the root `TopLevel` on other platforms.
+  </Accordion>
+</AccordionGroup>
+
+## Closing event and cancellation
+
+Subscribe to `Closing` to intercept dismissal and optionally cancel it. `TaskDialogClosingEventArgs` exposes the result that triggered the close and a `Cancel` property.
+
+```csharp
+dialog.Closing += async (sender, args) =>
+{
+    if (args.Result is TaskDialogStandardResult.OK)
+    {
+        var deferral = args.GetDeferral();
+        try
+        {
+            bool valid = await ValidateInputAsync();
+            if (!valid)
+                args.Cancel = true;
+        }
+        finally
+        {
+            deferral.Complete();
+        }
+    }
+};
+```
+
+## Complete example
+
+The following example assembles a file-conflict resolution dialog with commands, a checkbox, and a footer link.
+
+```csharp
+private async Task ShowConflictDialogAsync(string fileName)
+{
+    var keepBoth = new TaskDialogCommand
+    {
+        Text = "Keep both files",
+        Description = $"The incoming file will be renamed to '{fileName} (2)'.",
+        IconSource = new SymbolIconSource { Symbol = Symbol.Copy },
+        ClosesOnInvoked = true
+    };
+
+    var replace = new TaskDialogCommand
+    {
+        Text = "Replace the file in the destination",
+        Description = "The existing file will be overwritten and cannot be recovered.",
+        IconSource = new SymbolIconSource { Symbol = Symbol.Replace },
+        ClosesOnInvoked = true
+    };
+
+    var skip = new TaskDialogCommand
+    {
+        Text = "Skip this file",
+        Description = "No changes will be made to either file.",
+        IconSource = new SymbolIconSource { Symbol = Symbol.Dismiss },
+        ClosesOnInvoked = true
+    };
+
+    var applyToAll = new TaskDialogCheckBox { Text = "Do this for all conflicts" };
+
+    var dialog = new TaskDialog
+    {
+        Title = "File conflict",
+        Header = $"There is already a file named '{fileName}' in this location.",
+        SubHeader = "What would you like to do?",
+        XamlRoot = this,
+        Commands = { keepBoth, replace, skip },
+        Content = applyToAll,
+        Footer = new HyperlinkButton
+        {
+            Content = "Learn about file conflicts",
+            NavigateUri = new Uri("https://docs.example.com/file-conflicts")
+        },
+        FooterVisibility = TaskDialogFooterVisibility.Auto,
+        Buttons = { TaskDialogButton.CancelButton }
+    };
+
+    var result = await dialog.ShowAsync();
+    bool forAll = applyToAll.IsChecked == true;
+
+    // result will be the TaskDialogCommand object itself for command-link clicks
+    if (result == keepBoth)        await KeepBothAsync(forAll);
+    else if (result == replace)    await ReplaceAsync(forAll);
+    else if (result == skip)       SkipFile(forAll);
+}
+```

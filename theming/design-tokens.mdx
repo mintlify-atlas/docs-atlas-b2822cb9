@@ -1,0 +1,229 @@
+---
+title: 'Fluent Design Tokens in FluentAvalonia'
+description: 'Reference for FluentAvalonia design tokens: color, typography, and spacing resources, with XAML examples for overriding them in your application.'
+keywords: ['FluentAvalonia', 'design tokens', 'resources', 'ResourceDictionary', 'ThemeDictionaries', 'XAML overrides', 'Fluent v2']
+---
+
+FluentAvalonia ships a complete set of Fluent v2 design tokens as XAML resources, defined in `Styling/StylesV2/Fluentv2Colors.axaml` (colors) and `Styling/StylesV2/Fluentv2.axaml` (brushes and control tokens). These resources are loaded automatically when you add `FluentAvaloniaTheme` to your application. You can override any of them at the application level without modifying the library.
+
+## How resources are resolved
+
+`FluentAvaloniaTheme` overrides `TryGetResource` to check `Application.Current.Resources` before its own internal dictionaries. This means any resource you define in `Application.Resources` takes precedence over the defaults — no subclassing or workarounds required.
+
+```xml App.axaml
+<Application.Resources>
+    <!-- This value wins over FluentAvalonia's default -->
+    <Color x:Key="SystemAccentColor">#0078D4</Color>
+</Application.Resources>
+```
+
+## Color resources
+
+### Accent color tokens
+
+These seven resources drive every accent-colored surface in built-in controls. They are set at runtime by `FluentAvaloniaTheme` based on `CustomAccentColor`, `PreferUserAccentColor`, or the built-in default. See the [accent colors guide](/theming/accent-colors) for details.
+
+| Resource key | Role |
+|---|---|
+| `SystemAccentColor` | Base accent |
+| `SystemAccentColorLight1` | +15% lightness |
+| `SystemAccentColorLight2` | +30% lightness |
+| `SystemAccentColorLight3` | +45% lightness |
+| `SystemAccentColorDark1` | −15% lightness |
+| `SystemAccentColorDark2` | −30% lightness |
+| `SystemAccentColorDark3` | −45% lightness |
+
+### Text fill colors
+
+Text colors are theme-aware and live in `ResourceDictionary.ThemeDictionaries` under `Default` (light) and `Dark` keys.
+
+| Resource key | Light value | Dark value |
+|---|---|---|
+| `TextFillColorPrimary` | `#E4000000` | `#FFFFFF` |
+| `TextFillColorSecondary` | `#9E000000` | `#C5FFFFFF` |
+| `TextFillColorTertiary` | `#72000000` | `#87FFFFFF` |
+| `TextFillColorDisabled` | `#5C000000` | `#5DFFFFFF` |
+| `TextFillColorInverse` | `#FFFFFF` | `#E4000000` |
+
+Each color resource has a corresponding `SolidColorBrush` with a `Brush` suffix (e.g. `TextFillColorPrimaryBrush`) that controls use directly.
+
+### Control fill colors
+
+| Resource key | Description |
+|---|---|
+| `ControlFillColorDefault` | Default background for interactive controls |
+| `ControlFillColorSecondary` | Hover state background |
+| `ControlFillColorTertiary` | Pressed state background |
+| `ControlFillColorDisabled` | Disabled state background |
+| `ControlFillColorInputActive` | Active input field background |
+| `ControlSolidFillColorDefault` | Solid (non-transparent) control background |
+
+### Background fill colors
+
+| Resource key | Description |
+|---|---|
+| `SolidBackgroundFillColorBase` | Main application background |
+| `SolidBackgroundFillColorSecondary` | Secondary surface (e.g. sidebars) |
+| `SolidBackgroundFillColorTertiary` | Tertiary surface |
+| `SolidBackgroundFillColorQuarternary` | Quaternary surface |
+
+### Status / system fill colors
+
+| Resource key | Semantic meaning |
+|---|---|
+| `SystemFillColorSuccess` | Success state |
+| `SystemFillColorCaution` | Warning state |
+| `SystemFillColorCritical` | Error / critical state |
+| `SystemFillColorNeutral` | Neutral / informational |
+| `SystemFillColorSuccessBackground` | Background behind success content |
+| `SystemFillColorCautionBackground` | Background behind caution content |
+| `SystemFillColorCriticalBackground` | Background behind critical content |
+
+### Stroke colors
+
+| Resource key | Description |
+|---|---|
+| `ControlStrokeColorDefault` | Standard control border |
+| `ControlStrokeColorSecondary` | Lower-emphasis border |
+| `ControlStrokeColorOnAccentDefault` | Border on accent-filled surfaces |
+| `ControlStrongStrokeColorDefault` | High-emphasis border (e.g. checkbox, radio) |
+| `FocusStrokeColorOuter` | Outer focus ring |
+| `FocusStrokeColorInner` | Inner focus ring |
+| `DividerStrokeColorDefault` | Horizontal/vertical dividers |
+
+## Typography resources
+
+### ContentControlThemeFontFamily
+
+The global font family used by all content controls. FluentAvalonia sets this at startup:
+
+- **Windows 11**: `Segoe UI Variable Text`
+- **Windows 10**: `Segoe UI`
+- **macOS / Linux / other**: `FontFamily.Default` (the platform default)
+
+Override it in `Application.Resources` to use a custom font:
+
+```xml App.axaml
+<Application.Resources>
+    <FontFamily x:Key="ContentControlThemeFontFamily">
+        avares://MyApp/Assets/Fonts#Inter
+    </FontFamily>
+</Application.Resources>
+```
+
+### SymbolThemeFontFamily
+
+The icon font used by FluentAvalonia's symbol controls. This is set to the bundled Symbols font:
+
+```xml
+<FontFamily x:Key="SymbolThemeFontFamily">/Fonts/#Symbols</FontFamily>
+```
+
+Do not override this key unless you are substituting the entire symbol font.
+
+## Spacing resources
+
+Spacing tokens control padding inside specific controls. When `TextVerticalAlignmentOverrideBehavior` is active (the default on non-Windows), FluentAvalonia replaces these values at startup to fix vertical text alignment issues caused by missing Segoe fonts.
+
+| Resource key | Default value | Applied control |
+|---|---|---|
+| `CheckBoxPadding` | `Thickness(8, 5, 0, 5)` (override) | `CheckBox` |
+| `ComboBoxPadding` | `Thickness(12, 5, 0, 5)` (override) | `ComboBox` |
+| `ComboBoxItemThemePadding` | `Thickness(11, 5, 11, 5)` (override) | `ComboBoxItem` |
+| `TextControlThemePadding` | `Thickness(10, 5, 6, 5)` (override) | `TextBox`, `AutoCompleteBox` |
+
+<Note>
+  These spacing tokens are added to the `FluentAvaloniaTheme` resource dictionary, not `Application.Resources`, so you can still override them by defining the same key in `Application.Resources`.
+</Note>
+
+## Overriding resources
+
+### Global override in Application.Resources
+
+Place any resource key you want to override inside `Application.Resources`. The value applies to all theme variants.
+
+```xml App.axaml
+<Application.Resources>
+    <!-- Override the base application background -->
+    <Color x:Key="SolidBackgroundFillColorBase">#1A1A2E</Color>
+
+    <!-- Override control default fill -->
+    <Color x:Key="ControlFillColorDefault">#16213E</Color>
+
+    <!-- Override the global font -->
+    <FontFamily x:Key="ContentControlThemeFontFamily">
+        avares://MyApp/Assets/Fonts#Roboto
+    </FontFamily>
+</Application.Resources>
+```
+
+### Light- and dark-specific overrides with ThemeDictionaries
+
+Use `ResourceDictionary.ThemeDictionaries` to supply different values per theme variant. The `Default` key corresponds to light mode in FluentAvalonia.
+
+```xml App.axaml
+<Application.Resources>
+    <ResourceDictionary>
+        <ResourceDictionary.ThemeDictionaries>
+            <ResourceDictionary x:Key="Default">
+                <!-- Light theme overrides -->
+                <Color x:Key="SolidBackgroundFillColorBase">#F0F4FF</Color>
+                <Color x:Key="ControlFillColorDefault">#DDEEFF</Color>
+            </ResourceDictionary>
+            <ResourceDictionary x:Key="Dark">
+                <!-- Dark theme overrides -->
+                <Color x:Key="SolidBackgroundFillColorBase">#0D1117</Color>
+                <Color x:Key="ControlFillColorDefault">#161B22</Color>
+            </ResourceDictionary>
+        </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+</Application.Resources>
+```
+
+<Tip>
+  Brush resources (`*Brush`) reference their corresponding color resources via `StaticResource`. If you override only the `Color` key, controls that bind directly to the `Brush` key will not update. Override the `Brush` key as well to guarantee consistent rendering.
+</Tip>
+
+### Overriding both a color and its brush
+
+```xml App.axaml
+<Application.Resources>
+    <ResourceDictionary>
+        <ResourceDictionary.ThemeDictionaries>
+            <ResourceDictionary x:Key="Default">
+                <Color x:Key="TextFillColorPrimary">#1A1A3E</Color>
+                <SolidColorBrush x:Key="TextFillColorPrimaryBrush"
+                                 Color="{StaticResource TextFillColorPrimary}" />
+            </ResourceDictionary>
+        </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+</Application.Resources>
+```
+
+### Overriding in a merged ResourceDictionary
+
+For larger projects, keep your token overrides in a separate file and merge it into `Application.Resources`:
+
+```xml App.axaml
+<Application.Resources>
+    <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceInclude Source="avares://MyApp/Assets/Themes/MyTokens.axaml" />
+        </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+</Application.Resources>
+```
+
+```xml MyTokens.axaml
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Color x:Key="SystemAccentColor">#8B5CF6</Color>
+    <FontFamily x:Key="ContentControlThemeFontFamily">
+        avares://MyApp/Assets/Fonts#Inter
+    </FontFamily>
+</ResourceDictionary>
+```
+
+<Warning>
+  Resources in a `MergedDictionary` are resolved before resources declared directly in the parent dictionary. If you declare the same key both in a merged file and directly in `Application.Resources`, the direct declaration wins.
+</Warning>

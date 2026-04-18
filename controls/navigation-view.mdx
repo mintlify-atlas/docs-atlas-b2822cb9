@@ -1,0 +1,296 @@
+---
+title: 'NavigationView: Pane-based app navigation'
+description: 'Add collapsible or top-bar navigation to your FluentAvalonia app with NavigationView. Supports left, compact, minimal, and top pane display modes.'
+keywords: ['NavigationView', 'FluentAvalonia', 'navigation', 'pane', 'menu', 'Avalonia']
+---
+
+`NavigationView` is the primary navigation scaffold for FluentAvalonia applications. It renders a collapsible pane containing menu items alongside a content area, matching the Fluent Design navigation pattern found in Windows 11 apps. Use it whenever your app has four or more top-level destinations that benefit from persistent or contextual visibility.
+
+## Installation
+
+Add the FluentAvalonia namespace to your XAML file before using any of its controls:
+
+```xml
+xmlns:ui="using:FluentAvalonia.UI.Controls"
+```
+
+## Basic usage
+
+The simplest NavigationView has a fixed left pane populated with `NavigationViewItem` elements. Each item takes a `Content` label, an `IconSource` (a Fluent symbol name or a full `IconSource` object), and an optional `Tag` you can read back in the `SelectionChanged` handler.
+
+```xml
+<ui:NavigationView PaneDisplayMode="Left" Height="460">
+    <ui:NavigationView.MenuItems>
+        <ui:NavigationViewItem Content="Home"    Tag="home"     IconSource="Home" />
+        <ui:NavigationViewItem Content="Browse"  Tag="browse"   IconSource="Library" />
+        <ui:NavigationViewItem Content="History" Tag="history"  IconSource="Tag" />
+        <ui:NavigationViewItem Content="Account" Tag="account"  IconSource="Contact" />
+    </ui:NavigationView.MenuItems>
+</ui:NavigationView>
+```
+
+## Pane display modes
+
+`PaneDisplayMode` (type `NavigationViewPaneDisplayMode`) controls the layout of the pane.
+
+<AccordionGroup>
+  <Accordion title="Auto (default)">
+    The pane transitions automatically between **Minimal**, **Compact**, and **Expanded** states based on the control's width. Use `CompactModeThresholdWidth` (default 641 px) and `ExpandedModeThresholdWidth` (default 1008 px) to adjust the breakpoints.
+  </Accordion>
+  <Accordion title="Left">
+    The pane is always fully open on the left side. The width is controlled by `OpenPaneLength` (default 320 px).
+  </Accordion>
+  <Accordion title="LeftCompact">
+    Only item icons are shown by default (width governed by `CompactPaneLength`, default 48 px). The pane expands to full width when `IsPaneOpen` is `true`.
+  </Accordion>
+  <Accordion title="LeftMinimal">
+    Only the hamburger toggle button is shown. The pane overlays the content area when opened.
+  </Accordion>
+  <Accordion title="Top">
+    Navigation items are laid out horizontally above the content area. Items that overflow are moved into an ellipsis flyout automatically.
+  </Accordion>
+</AccordionGroup>
+
+The read-only `DisplayMode` property (`NavigationViewDisplayMode`) reflects the current computed state: `Minimal`, `Compact`, or `Expanded`.
+
+## Menu items
+
+### NavigationViewItem
+
+The primary item type. Key properties:
+
+<AccordionGroup>
+  <Accordion title="Content">
+    Any object displayed as the item label (usually a string).
+  </Accordion>
+  <Accordion title="Tag">
+    Arbitrary object attached to the item. Retrieve it from `NavigationViewSelectionChangedEventArgs.SelectedItemContainer.Tag` to identify the destination.
+  </Accordion>
+  <Accordion title="IconSource">
+    An `IconSource` (e.g., a `SymbolIconSource` or `BitmapIconSource`). Shorthand string values such as `"Home"` or `"Settings"` resolve to `SymbolIconSource` symbols automatically in XAML.
+  </Accordion>
+  <Accordion title="SelectsOnInvoked">
+    Set to `false` to make an item act as an expander-only node that never becomes the selected item.
+  </Accordion>
+  <Accordion title="InfoBadge">
+    Attach an `InfoBadge` element to show notification counts or status dots on the item.
+  </Accordion>
+  <Accordion title="MenuItems / MenuItemsSource">
+    Child navigation items that appear nested beneath this item (hierarchical navigation).
+  </Accordion>
+</AccordionGroup>
+
+### NavigationViewItemHeader
+
+A non-interactive group label rendered above a set of items.
+
+```xml
+<ui:NavigationViewItemHeader Content="Documents" />
+```
+
+### NavigationViewItemSeparator
+
+A thin horizontal rule that visually divides groups of items.
+
+```xml
+<ui:NavigationViewItemSeparator />
+```
+
+## Handling selection
+
+Subscribe to `SelectionChanged` to respond when the user picks a new destination. The event args expose `SelectedItem` (the raw data object or `NavigationViewItem`) and `SelectedItemContainer` (always the `NavigationViewItem` container).
+
+```xml
+<ui:NavigationView x:Name="NavView"
+                   PaneDisplayMode="Auto"
+                   SelectionChanged="NavView_SelectionChanged">
+    <ui:NavigationView.MenuItems>
+        <ui:NavigationViewItem Content="Home"     Tag="home"    IconSource="Home" />
+        <ui:NavigationViewItem Content="Settings" Tag="settings" IconSource="Setting" />
+    </ui:NavigationView.MenuItems>
+</ui:NavigationView>
+```
+
+```csharp
+private void NavView_SelectionChanged(object sender,
+    NavigationViewSelectionChangedEventArgs e)
+{
+    if (e.IsSettingsSelected)
+    {
+        ContentFrame.Navigate(typeof(SettingsPage));
+        return;
+    }
+
+    var tag = (e.SelectedItemContainer as NavigationViewItem)?.Tag?.ToString();
+    switch (tag)
+    {
+        case "home":     ContentFrame.Navigate(typeof(HomePage));     break;
+        case "settings": ContentFrame.Navigate(typeof(SettingsPage)); break;
+    }
+}
+```
+
+<Tip>
+`ItemInvoked` fires on every tap/click even when the item is already selected. Prefer `SelectionChanged` when you only want to react to actual destination changes.
+</Tip>
+
+## Footer items
+
+`FooterMenuItems` (or `FooterMenuItemsSource`) pins a secondary list of items to the bottom of the pane. The built-in **Settings** item is also rendered in the footer; set `IsSettingsVisible="False"` to hide it and supply your own.
+
+```xml
+<ui:NavigationView IsSettingsVisible="False">
+    <ui:NavigationView.MenuItems>
+        <ui:NavigationViewItem Content="Browse"  IconSource="Library" />
+        <ui:NavigationViewItem Content="History" IconSource="Tag" />
+    </ui:NavigationView.MenuItems>
+
+    <ui:NavigationView.FooterMenuItems>
+        <ui:NavigationViewItem Content="Account" IconSource="Contact" />
+        <ui:NavigationViewItem Content="Help"    IconSource="Help" />
+    </ui:NavigationView.FooterMenuItems>
+</ui:NavigationView>
+```
+
+## Hierarchical navigation
+
+Nest `NavigationViewItem.MenuItems` to create a tree structure. Items with children show a chevron and expand inline (left pane) or into a flyout (compact / top pane).
+
+```xml
+<ui:NavigationView PaneDisplayMode="Left" Height="460">
+    <ui:NavigationView.MenuItems>
+        <ui:NavigationViewItem Content="Home" IconSource="Home" />
+        <ui:NavigationViewItem Content="Account" IconSource="People">
+            <ui:NavigationViewItem.MenuItems>
+                <ui:NavigationViewItem Content="Mail"     IconSource="Mail" />
+                <ui:NavigationViewItem Content="Calendar" IconSource="Calendar" />
+            </ui:NavigationViewItem.MenuItems>
+        </ui:NavigationViewItem>
+        <ui:NavigationViewItem Content="Documents" IconSource="Document"
+                               SelectsOnInvoked="False">
+            <ui:NavigationViewItem.MenuItems>
+                <ui:NavigationViewItem Content="New"    IconSource="Add" />
+                <ui:NavigationViewItem Content="Upload" IconSource="Upload" />
+            </ui:NavigationViewItem.MenuItems>
+        </ui:NavigationViewItem>
+    </ui:NavigationView.MenuItems>
+</ui:NavigationView>
+```
+
+<Warning>
+Do not set `SelectionFollowsFocus="True"` with a hierarchical NavigationView. The interaction becomes unpredictable and mirrors the same limitation present in WinUI.
+</Warning>
+
+## Data binding
+
+Bind `MenuItemsSource` to a collection and define how each item is rendered via `MenuItemTemplate`. When your collection contains mixed types (items and separators), use a `DataTemplateSelector` assigned to `MenuItemTemplateSelector`.
+
+```xml
+<ui:NavigationView MenuItemsSource="{Binding Categories}"
+                   SelectedItem="{Binding SelectedCategory}">
+    <ui:NavigationView.MenuItemTemplate>
+        <DataTemplate DataType="{x:Type vm:Category}">
+            <ui:NavigationViewItem Content="{Binding Name}"
+                                   IconSource="{Binding Icon}" />
+        </DataTemplate>
+    </ui:NavigationView.MenuItemTemplate>
+</ui:NavigationView>
+```
+
+<Note>
+When binding both `MenuItemsSource` and `SelectedItem`, avoid relying on the built-in Settings item unless your `SelectedItem` property type is `object`. The Settings item is a `NavigationViewItem` and cannot be cast to a strongly-typed view-model category.
+</Note>
+
+## Key properties reference
+
+<AccordionGroup>
+  <Accordion title="IsPaneOpen">
+    `bool` — Gets or sets whether the pane is expanded to its full width. Default: `true`.
+  </Accordion>
+  <Accordion title="PaneDisplayMode">
+    `NavigationViewPaneDisplayMode` — Controls layout. Values: `Auto`, `Left`, `LeftCompact`, `LeftMinimal`, `Top`.
+  </Accordion>
+  <Accordion title="CompactPaneLength">
+    `double` — Width of the pane in compact state. Default: `48`.
+  </Accordion>
+  <Accordion title="OpenPaneLength">
+    `double` — Width of the pane when fully open. Default: `320`.
+  </Accordion>
+  <Accordion title="AlwaysShowHeader">
+    `bool` — Whether the header bar is visible even when no item is selected. Default: `true`.
+  </Accordion>
+  <Accordion title="IsBackButtonVisible / IsBackEnabled">
+    Control the back button that sits above the pane menu items.
+  </Accordion>
+  <Accordion title="IsPaneToggleButtonVisible">
+    `bool` — Show or hide the hamburger toggle button. Default: `true`.
+  </Accordion>
+  <Accordion title="PaneHeader / PaneCustomContent / PaneFooter">
+    Arbitrary `Control` slots for custom content in the pane header, middle, and footer areas.
+  </Accordion>
+  <Accordion title="AutoCompleteBox">
+    Assigns an `AutoCompleteBox` to the search slot in the pane.
+  </Accordion>
+</AccordionGroup>
+
+## Complete real-world example
+
+The example below combines a left-compact pane, a back button, footer items, and a connected `Frame` for page content.
+
+```xml
+<ui:NavigationView x:Name="NavView"
+                   PaneDisplayMode="LeftCompact"
+                   IsBackButtonVisible="True"
+                   IsBackEnabled="{Binding #ContentFrame.CanGoBack}"
+                   SelectionChanged="NavView_SelectionChanged"
+                   BackRequested="NavView_BackRequested">
+
+    <ui:NavigationView.MenuItems>
+        <ui:NavigationViewItem Content="Home"    Tag="home"    IconSource="Home" />
+        <ui:NavigationViewItemSeparator />
+        <ui:NavigationViewItemHeader Content="Library" />
+        <ui:NavigationViewItem Content="Browse"  Tag="browse"  IconSource="Library" />
+        <ui:NavigationViewItem Content="History" Tag="history" IconSource="Tag" />
+    </ui:NavigationView.MenuItems>
+
+    <ui:NavigationView.FooterMenuItems>
+        <ui:NavigationViewItem Content="Account" Tag="account" IconSource="Contact" />
+    </ui:NavigationView.FooterMenuItems>
+
+    <ui:Frame x:Name="ContentFrame" />
+</ui:NavigationView>
+```
+
+```csharp
+private void NavView_SelectionChanged(object sender,
+    NavigationViewSelectionChangedEventArgs e)
+{
+    if (e.IsSettingsSelected)
+    {
+        ContentFrame.Navigate(typeof(SettingsPage));
+        return;
+    }
+
+    var tag = (e.SelectedItemContainer as NavigationViewItem)?.Tag?.ToString();
+    Type page = tag switch
+    {
+        "home"    => typeof(HomePage),
+        "browse"  => typeof(BrowsePage),
+        "history" => typeof(HistoryPage),
+        "account" => typeof(AccountPage),
+        _         => null
+    };
+
+    if (page is not null)
+        ContentFrame.Navigate(page);
+
+    NavView.IsBackEnabled = ContentFrame.CanGoBack;
+}
+
+private void NavView_BackRequested(NavigationView sender,
+    NavigationViewBackRequestedEventArgs e)
+{
+    if (ContentFrame.CanGoBack)
+        ContentFrame.GoBack();
+}
+```

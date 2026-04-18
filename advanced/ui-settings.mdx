@@ -1,0 +1,82 @@
+---
+title: "Global UI behavior with FAUISettings in FluentAvalonia"
+description: "Configure app-wide animation, TabView drag-reorder previews, and system drag thresholds using the FAUISettings static class in FluentAvalonia."
+keywords: ["FAUISettings", "animations", "SetAnimationsEnabledAtAppLevel", "TabView", "drag reorder", "FluentAvalonia"]
+---
+
+`FAUISettings` is a static settings class that controls application-wide UI behavior in FluentAvalonia. It exposes a small surface for toggling animations, configuring `TabView` drag previews, and reading the platform drag-detection threshold. Changes take effect immediately — there is no restart or re-initialization required.
+
+## Animation control
+
+FluentAvalonia animations are enabled by default. Disable them globally for accessibility, testing, or performance scenarios.
+
+```csharp
+using FluentAvalonia.Core;
+
+// Check the current state
+bool enabled = FAUISettings.AreAnimationsEnabled(); // true by default
+
+// Disable all FluentAvalonia animations
+FAUISettings.SetAnimationsEnabledAtAppLevel(false);
+
+// Re-enable
+FAUISettings.SetAnimationsEnabledAtAppLevel(true);
+```
+
+<Tip>
+Check the operating system's "reduce motion" accessibility preference at startup and call `SetAnimationsEnabledAtAppLevel(false)` when it is enabled. This makes your app accessible without extra per-control logic.
+</Tip>
+
+<Note>
+`AreAnimationsEnabled()` is read at the point each animation runs. Toggling it mid-session only affects animations that start after the call — in-flight animations are not interrupted.
+</Note>
+
+## TabView drag-reorder preview
+
+When a user drags a tab in `TabView`, FluentAvalonia can display a small popup preview of where the tab will be dropped. This feature is enabled by default.
+
+```csharp
+using FluentAvalonia.Core;
+
+// Read the current setting
+bool previewEnabled = FAUISettings.UseTabViewDragReorderPreview(); // true by default
+
+// Disable the preview popup
+FAUISettings.SetUseTabViewDragReorderPreview(false);
+
+// Re-enable
+FAUISettings.SetUseTabViewDragReorderPreview(true);
+```
+
+<Note>
+This setting affects all `TabView` instances in the application. There is no per-instance override exposed on `TabView` itself.
+</Note>
+
+## System drag size
+
+`GetSystemDragSize` returns the minimum pointer movement (in DIPs) required to register the start of a drag-drop operation. On Windows the values are read from `GetSystemMetrics(SM_CXDRAG/SM_CYDRAG)` scaled by the render factor. On all other platforms a default of `4 * scaling` is returned.
+
+```csharp
+using FluentAvalonia.Core;
+
+// Pass the current render scale (e.g. 1.0 for 100%, 1.5 for 150%)
+FAUISettings.GetSystemDragSize(scaling: 1.0, out double cxDrag, out double cyDrag);
+
+// cxDrag: minimum horizontal movement to start a drag
+// cyDrag: minimum vertical movement to start a drag
+Console.WriteLine($"Drag threshold: {cxDrag}x{cyDrag} DIPs");
+```
+
+<Tip>
+Use `GetSystemDragSize` in custom drag-source controls to decide when a `PointerMoved` delta should begin a drag operation, matching OS behavior exactly.
+</Tip>
+
+## API reference
+
+| Member | Signature | Description |
+|---|---|---|
+| `AreAnimationsEnabled` | `static bool AreAnimationsEnabled()` | Returns whether animations are currently enabled |
+| `SetAnimationsEnabledAtAppLevel` | `static void SetAnimationsEnabledAtAppLevel(bool)` | Enables or disables all FluentAvalonia animations |
+| `UseTabViewDragReorderPreview` | `static bool UseTabViewDragReorderPreview()` | Returns whether the TabView drag preview popup is shown |
+| `SetUseTabViewDragReorderPreview` | `static void SetUseTabViewDragReorderPreview(bool)` | Enables or disables the TabView drag preview popup |
+| `GetSystemDragSize` | `static void GetSystemDragSize(double scaling, out double cxDrag, out double cyDrag)` | Outputs the platform drag-detection threshold in DIPs |

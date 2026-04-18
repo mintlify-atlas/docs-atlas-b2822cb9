@@ -1,0 +1,185 @@
+---
+title: 'Display a startup splash screen with AppWindow'
+description: 'Implement a UWP-style startup splash screen in FluentAvalonia. Define tasks and custom content with IApplicationSplashScreen and assign it to AppWindow.SplashScreen.'
+keywords: ['splash screen', 'AppWindow', 'IApplicationSplashScreen', 'startup', 'FluentAvalonia']
+---
+
+`AppWindow` has built-in support for displaying a splash screen while your application loads data, initializes services, or performs other startup work. The splash screen appears immediately when the window opens, runs your background tasks concurrently, and then fades out before revealing the main application content.
+
+---
+
+## IApplicationSplashScreen interface
+
+Implement `IApplicationSplashScreen` to define what the splash screen displays and what work it performs.
+
+```csharp interface
+public interface IApplicationSplashScreen
+{
+    string AppName { get; }
+    IImage AppIcon { get; }
+    object SplashScreenContent { get; }
+    Task RunTasks(CancellationToken cancellationToken);
+    int MinimumShowTime { get; }
+}
+```
+
+### Members
+
+<AccordionGroup>
+  <Accordion title="AppName">
+    A plain text application name displayed in the default splash screen template when neither `SplashScreenContent` nor `AppIcon` is set. Return `null` or an empty string if you are providing custom content.
+  </Accordion>
+  <Accordion title="AppIcon">
+    An `IImage` (e.g. a `Bitmap`) shown in the default splash screen template when `SplashScreenContent` is `null`. If you return a value here it takes priority over `AppName`.
+  </Accordion>
+  <Accordion title="SplashScreenContent">
+    Any object (typically an Avalonia `Control`) that replaces the default template entirely. This has the highest display priority: if it is non-null, `AppIcon` and `AppName` are ignored.
+  </Accordion>
+  <Accordion title="RunTasks(CancellationToken)">
+    Called by `AppWindow` on the UI thread via `await`. Perform all startup work here — database migrations, service registration, network prefetching, etc. The `CancellationToken` is signalled if the user closes the window before tasks complete.
+  </Accordion>
+  <Accordion title="MinimumShowTime">
+    Minimum duration in milliseconds for which the splash screen remains visible. If `RunTasks` finishes faster than this value, `AppWindow` inserts an additional delay. This prevents a distracting instant-flash when startup is very fast. A value of `0` means no minimum.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Content priority
+
+`AppSplashScreen` applies content in the following order of precedence:
+
+1. `SplashScreenContent` — any object; rendered through a `ContentPresenter`
+2. `AppIcon` — rendered as an `Image`
+3. `AppName` — rendered as a `TextBlock`
+
+Only the first non-null value is used.
+
+---
+
+## Wiring up the splash screen
+
+Assign your implementation to `AppWindow.SplashScreen` before or during construction. `AppWindow` creates a `SplashScreenContext` internally to manage the lifecycle.
+
+<Steps>
+  <Step title="Implement IApplicationSplashScreen">
+    ```csharp MySplashScreen.cs
+    using Avalonia.Media;
+    using FluentAvalonia.UI.Windowing;
+
+    public class MySplashScreen : IApplicationSplashScreen
+    {
+        public string AppName => "My Application";
+        public IImage AppIcon => null;      // use AppName fallback
+        public object SplashScreenContent => null; // use default template
+        public int MinimumShowTime => 1500; // show for at least 1.5 s
+
+        public async Task RunTasks(CancellationToken cancellationToken)
+        {
+            // Initialize services, load configuration, etc.
+            await Task.Delay(800, cancellationToken); // simulate work
+        }
+    }
+    ```
+  </Step>
+  <Step title="Assign to AppWindow.SplashScreen">
+    ```csharp MainWindow.axaml.cs
+    using FluentAvalonia.UI.Windowing;
+
+    public partial class MainWindow : AppWindow
+    {
+        public MainWindow()
+        {
+            InitializeComponent();
+            SplashScreen = new MySplashScreen();
+        }
+    }
+    ```
+  </Step>
+  <Step title="Run and verify">
+    Launch the application. The splash screen appears immediately when the window opens. Once `RunTasks` completes (and `MinimumShowTime` elapses), the splash fades out with a 250 ms opacity animation and the main content fades in over 167 ms.
+  </Step>
+</Steps>
+
+---
+
+## Custom splash screen content
+
+Return a fully custom Avalonia control from `SplashScreenContent` to take complete visual control of the splash screen.
+
+<CodeGroup>
+
+```csharp MySplashScreen.cs
+using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Media;
+using FluentAvalonia.UI.Windowing;
+
+public class MySplashScreen : IApplicationSplashScreen
+{
+    public string AppName => null;
+    public IImage AppIcon => null;
+    public int MinimumShowTime => 2000;
+
+    public object SplashScreenContent => new StackPanel
+    {
+        HorizontalAlignment = HorizontalAlignment.Center,
+        VerticalAlignment = VerticalAlignment.Center,
+        Spacing = 16,
+        Children =
+        {
+            new Image { Source = new Bitmap("avares://MyApp/Assets/logo.png") },
+            new TextBlock
+            {
+                Text = "Loading…",
+                FontSize = 20,
+                Foreground = Brushes.White
+            },
+            new ProgressBar { IsIndeterminate = true, Width = 200 }
+        }
+    };
+
+    public async Task RunTasks(CancellationToken cancellationToken)
+    {
+        await InitializeDatabaseAsync(cancellationToken);
+        await PrefetchUserDataAsync(cancellationToken);
+    }
+
+    private Task InitializeDatabaseAsync(CancellationToken ct) =>
+        Task.Delay(400, ct);
+
+    private Task PrefetchUserDataAsync(CancellationToken ct) =>
+        Task.Delay(600, ct);
+}
+```
+
+```xml MainWindow.axaml
+<fa:AppWindow
+    xmlns:fa="using:FluentAvalonia.UI.Windowing"
+    Title="My App"
+    Width="1200" Height="800">
+
+    <!-- Main content displayed after splash -->
+    <Grid>
+        <TextBlock Text="Welcome!" FontSize="32"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
+    </Grid>
+
+</fa:AppWindow>
+```
+
+</CodeGroup>
+
+---
+
+## Lifecycle notes
+
+- The splash screen runs exactly once per window lifetime. After it completes, `HasShownSplashScreen` is set to `true` and the splash never replays.
+- If the user closes the window while tasks are running, the `CancellationToken` passed to `RunTasks` is cancelled. Always propagate it to any `Task.Delay` or I/O calls.
+- Set `SplashScreen = null` to remove the splash at runtime (e.g. during development). The `:splashScreen` pseudo-class is cleared immediately.
+
+```csharp
+// Disable splash at runtime
+SplashScreen = null;
+```

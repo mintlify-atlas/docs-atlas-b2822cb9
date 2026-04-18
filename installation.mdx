@@ -1,0 +1,110 @@
+---
+title: "Install FluentAvaloniaUI in your Avalonia project"
+description: "Step-by-step instructions to add FluentAvaloniaUI via NuGet, configure App.axaml with FluentAvaloniaTheme, and verify version compatibility."
+keywords: ["FluentAvalonia", "install", "NuGet", "FluentAvaloniaUI", "App.axaml", "FluentAvaloniaTheme"]
+---
+
+Adding FluentAvalonia to an Avalonia project takes two steps: installing the NuGet package and registering the `FluentAvaloniaTheme` style provider in `App.axaml`. This page covers both, along with prerequisites and version compatibility information.
+
+## Prerequisites
+
+Before you install FluentAvalonia, make sure you have:
+
+- **.NET SDK** — .NET 8 or later is recommended. The library itself is built against net10.0, but any modern .NET SDK can consume it.
+- **Avalonia 11.2.5 or later** — Required for FluentAvalonia v2.3.0, the current release. See the [version compatibility table](#version-compatibility) below if you are on an older Avalonia version.
+- An existing Avalonia application project. If you do not have one yet, create it with `dotnet new avalonia.app -o MyApp`.
+
+<Warning>
+  Windows 7 and Windows 8/8.1 are not supported. The library may run on those systems, but no support is provided.
+</Warning>
+
+## Installing the package
+
+The NuGet package ID is `FluentAvaloniaUI`. Install it using the .NET CLI or by adding a `PackageReference` to your `.csproj` file.
+
+<CodeGroup>
+
+```bash .NET CLI
+dotnet add package FluentAvaloniaUI
+```
+
+```xml .csproj PackageReference
+<ItemGroup>
+  <PackageReference Include="FluentAvaloniaUI" Version="2.3.0" />
+</ItemGroup>
+```
+
+</CodeGroup>
+
+<Tip>
+  Omit the `Version` attribute when using the .NET CLI to automatically install the latest stable release. Pin a specific version in `.csproj` when you need a reproducible build.
+</Tip>
+
+## Version compatibility
+
+Match your Avalonia version to the correct FluentAvalonia release.
+
+| FluentAvalonia | Avalonia minimum |
+|---|---|
+| v2.3.0 (current) | 11.2.5 |
+| v2.1.0 | 11.1.0 |
+| v2.0.5 | 11.0.4 |
+| v2.0.x and below | 11.0 |
+
+<Note>
+  FluentAvalonia 1.x (for Avalonia 0.10.x) is deprecated. Upgrade to Avalonia 11.x and FluentAvalonia 2.x to continue receiving updates.
+</Note>
+
+## Configuring App.axaml
+
+After installing the package, register `FluentAvaloniaTheme` as a style in your `App.axaml` file. This replaces the default `FluentTheme` — `FluentAvaloniaTheme` is a superset and includes everything you need.
+
+Add the `xmlns:fa` namespace declaration to the `<Application>` element and include `<fa:FluentAvaloniaTheme>` inside `<Application.Styles>`:
+
+```xml App.axaml
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:fa="using:FluentAvalonia.Styling"
+             x:Class="MyApp.App">
+
+    <Application.Styles>
+        <fa:FluentAvaloniaTheme />
+    </Application.Styles>
+
+</Application>
+```
+
+<Note>
+  Do not add a separate `<StyleInclude>` for `Avalonia.Themes.Fluent` alongside `FluentAvaloniaTheme`. The FluentAvalonia theme already bundles Fluent design tokens and base styles; including both will cause duplicate style definitions.
+</Note>
+
+### Enabling system theme and accent color
+
+You can configure `FluentAvaloniaTheme` to follow the operating system's light/dark preference and accent color by setting two properties directly in XAML:
+
+```xml App.axaml
+<Application.Styles>
+    <fa:FluentAvaloniaTheme PreferSystemTheme="True"
+                            PreferUserAccentColor="True" />
+</Application.Styles>
+```
+
+| Property | Default | Description |
+|---|---|---|
+| `PreferSystemTheme` | `false` | Detect and follow the OS light/dark/high-contrast theme. Supported on Windows, macOS, and Linux. |
+| `PreferUserAccentColor` | `false` | Use the OS accent color as `SystemAccentColor`. On Linux, requires KDE, LXQt, or LXDE. |
+| `CustomAccentColor` | `null` | Override the accent color with a specific `Color` value. Takes precedence over `PreferUserAccentColor`. |
+| `UseSystemFontOnWindows` | `true` | Use Segoe UI (Windows 10) or Segoe UI Variable Text (Windows 11) as the app font on Windows. |
+
+## Next step
+
+With the package installed and the theme registered, you are ready to add FluentAvalonia controls to your views.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Build a working app with NavigationView and system-aware theming.
+  </Card>
+  <Card title="Theming" icon="palette" href="/theming/fluent-avalonia-theme">
+    Learn how to customise the theme, accent colors, and design tokens.
+  </Card>
+</CardGroup>

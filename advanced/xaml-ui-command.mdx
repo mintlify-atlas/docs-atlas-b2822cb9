@@ -1,0 +1,158 @@
+---
+title: "Reusable commands with XamlUICommand in FluentAvalonia"
+description: "Learn to define reusable UI commands using XamlUICommand and StandardUICommand, with label, icon, hotkey, and CommandBar binding in FluentAvalonia."
+keywords: ["XamlUICommand", "StandardUICommand", "StandardUICommandKind", "ICommand", "FluentAvalonia", "CommandBar"]
+---
+
+`XamlUICommand` lets you define a command once — with a label, icon, keyboard shortcut, and execute/can-execute logic — and reuse it across multiple controls without duplicating bindings. `StandardUICommand` extends it with pre-configured values for common editing and media operations so you do not have to set those properties manually.
+
+## XamlUICommand
+
+`XamlUICommand` implements `ICommand` and exposes typed events instead of the standard `Execute`/`CanExecute` pattern. Attach event handlers in code-behind to keep your view-model free of UI dependencies.
+
+### Key properties
+
+| Property | Type | Description |
+|---|---|---|
+| `Label` | `string` | Display text shown on buttons and menu items |
+| `Description` | `string` | Tooltip / accessibility description |
+| `IconSource` | `IconSource` | Icon displayed alongside the label |
+| `HotKey` | `KeyGesture` | Keyboard accelerator (e.g. `Ctrl+S`) |
+| `Command` | `ICommand` | Optional delegate command to forward execution to |
+
+### Key events
+
+| Event | Description |
+|---|---|
+| `ExecuteRequested` | Raised when the command is invoked |
+| `CanExecuteRequested` | Raised to determine whether the command is available; set `args.CanExecute` |
+
+### Basic usage
+
+```csharp
+using FluentAvalonia.UI.Input;
+
+var saveCommand = new XamlUICommand
+{
+    Label = "Save",
+    Description = "Save the current document",
+    IconSource = new SymbolIconSource { Symbol = Symbol.Save },
+    HotKey = new KeyGesture(Key.S, KeyModifiers.Control)
+};
+
+saveCommand.ExecuteRequested += (sender, args) =>
+{
+    SaveDocument();
+};
+
+saveCommand.CanExecuteRequested += (sender, args) =>
+{
+    args.CanExecute = _hasUnsavedChanges;
+};
+```
+
+Bind the command to a button in XAML:
+
+```xml
+<Button Command="{Binding SaveCommand}" Content="{Binding SaveCommand.Label}" />
+```
+
+<Note>
+Call `saveCommand.NotifyCanExecuteChanged()` whenever the condition checked in `CanExecuteRequested` changes. This triggers a re-evaluation of `CanExecute` on all bound controls.
+</Note>
+
+## StandardUICommand
+
+`StandardUICommand` extends `XamlUICommand` with a `Kind` property. Setting `Kind` automatically populates `Label`, `IconSource`, `Description`, and `HotKey` from a built-in table, saving boilerplate for common commands.
+
+### StandardUICommandKind enum
+
+| Value | Label | Default hotkey |
+|---|---|---|
+| `Cut` | Cut | `Ctrl+X` |
+| `Copy` | Copy | `Ctrl+C` |
+| `Paste` | Paste | `Ctrl+V` |
+| `SelectAll` | Select All | `Ctrl+A` |
+| `Delete` | Delete | `Delete` |
+| `Save` | Save | `Ctrl+S` |
+| `Open` | Open | `Ctrl+O` |
+| `Close` | Close | `Ctrl+W` |
+| `Undo` | Undo | `Ctrl+Z` |
+| `Redo` | Redo | `Ctrl+Y` |
+| `Share` | Share | — |
+| `Pause` | Pause | — |
+| `Play` | Play | — |
+| `Stop` | Stop | — |
+| `Forward` | Forward | — |
+| `Backward` | Backward | — |
+
+### Usage
+
+```csharp
+using FluentAvalonia.UI.Input;
+
+// Construct with a kind directly
+var deleteCommand = new StandardUICommand(StandardUICommandKind.Delete);
+
+deleteCommand.ExecuteRequested += (sender, args) =>
+{
+    DeleteSelectedItem();
+};
+
+deleteCommand.CanExecuteRequested += (sender, args) =>
+{
+    args.CanExecute = SelectedItem is not null;
+};
+```
+
+You can also set `Kind` after construction — the properties are updated immediately via `OnPropertyChanged`:
+
+```csharp
+var cmd = new StandardUICommand { Kind = StandardUICommandKind.Undo };
+```
+
+<Tip>
+Override individual properties after setting `Kind` to customize just one aspect. For example, set a different `HotKey` while keeping the built-in label and icon.
+</Tip>
+
+## Binding to CommandBar and CommandBarButton
+
+Pass a `XamlUICommand` or `StandardUICommand` as the `Command` property of a `CommandBarButton`. The button automatically mirrors the `Label` and `IconSource` from the command.
+
+```xml
+<UserControl xmlns:ui="using:FluentAvalonia.UI.Input"
+             xmlns:fa="using:FluentAvalonia.UI.Controls">
+
+    <!-- Declare commands as resources -->
+    <UserControl.Resources>
+        <ui:StandardUICommand x:Key="CopyCmd" Kind="Copy" />
+        <ui:StandardUICommand x:Key="PasteCmd" Kind="Paste" />
+    </UserControl.Resources>
+
+    <!-- Bind to a CommandBar -->
+    <fa:CommandBar>
+        <fa:CommandBar.PrimaryCommands>
+            <fa:CommandBarButton Command="{StaticResource CopyCmd}" />
+            <fa:CommandBarButton Command="{StaticResource PasteCmd}" />
+        </fa:CommandBar.PrimaryCommands>
+    </fa:CommandBar>
+
+</UserControl>
+```
+
+<Warning>
+`XamlUICommand` is not a `Control`, so you cannot place it directly in the visual tree. Declare it in `Resources` or as a property on your view-model and bind via `{StaticResource}` or `{Binding}`.
+</Warning>
+
+## Forwarding to a view-model ICommand
+
+Use the `Command` property to forward execution to an existing `ICommand` on your view-model. `XamlUICommand.CanExecute` returns `true` only when both the `CanExecuteRequested` handler approves **and** the inner `Command.CanExecute` returns `true`.
+
+```csharp
+var saveCmd = new XamlUICommand
+{
+    Label = "Save",
+    IconSource = new SymbolIconSource { Symbol = Symbol.Save },
+    Command = viewModel.SaveCommand  // delegate to view-model command
+};
+```

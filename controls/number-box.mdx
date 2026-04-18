@@ -1,0 +1,176 @@
+---
+title: 'NumberBox: Numeric input with expression support'
+description: 'Accept numeric input with spin buttons and expression evaluation in FluentAvalonia NumberBox. Covers validation modes, range clamping, and number formatting.'
+keywords: ['NumberBox', 'FluentAvalonia', 'numeric input', 'spin button', 'expression', 'Avalonia']
+---
+
+`NumberBox` is a text input control designed for numeric values. It supports configurable spin buttons for incrementing and decrementing the value, range clamping via `Minimum` and `Maximum`, and optional evaluation of arithmetic expressions such as `2+2` or `10/4`. Use it wherever you need structured numeric input with built-in validation.
+
+## Installation
+
+Add the FluentAvalonia namespace to your XAML file:
+
+```xml
+xmlns:ui="using:FluentAvalonia.UI.Controls"
+```
+
+## Basic usage
+
+The simplest `NumberBox` binds `Value` two-way and displays spin buttons inline.
+
+```xml
+<ui:NumberBox Header="Quantity"
+              Value="1"
+              Minimum="0"
+              Maximum="100"
+              SmallChange="1"
+              SpinButtonPlacementMode="Inline" />
+```
+
+## Spin button placement
+
+`SpinButtonPlacementMode` (type `NumberBoxSpinButtonPlacementMode`) controls where and when the increment/decrement buttons appear.
+
+<AccordionGroup>
+  <Accordion title="Hidden (default)">
+    No spin buttons are rendered. The user types a value directly.
+  </Accordion>
+  <Accordion title="Compact">
+    Spin buttons are shown in a compact vertical orientation. They expand when the control receives focus.
+  </Accordion>
+  <Accordion title="Inline">
+    Spin buttons are always visible in a horizontal layout alongside the text field.
+  </Accordion>
+</AccordionGroup>
+
+```xml
+<ui:NumberBox SpinButtonPlacementMode="Compact" Value="5" />
+```
+
+## Expression evaluation
+
+When `AcceptsExpression` is `true`, the control parses and evaluates arithmetic expressions entered as text. For example, typing `2+2` and pressing Enter sets `Value` to `4`.
+
+<Note>
+  Expression evaluation uses basic arithmetic only (addition, subtraction, multiplication, division). Complex expressions with functions or parentheses may not be supported.
+</Note>
+
+```xml
+<ui:NumberBox AcceptsExpression="True"
+              Header="Calculate"
+              PlaceholderText="e.g. 10 / 4" />
+```
+
+## Value change event
+
+The `ValueChanged` event fires after the user commits a new value (via Enter, spin button click, or focus loss). The event args provide both the old and new values.
+
+<CodeGroup>
+
+```xml XAML
+<ui:NumberBox Value="0"
+              ValueChanged="OnValueChanged"
+              SpinButtonPlacementMode="Inline" />
+```
+
+```csharp C#
+private void OnValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs e)
+{
+    double oldValue = e.OldValue;
+    double newValue = e.NewValue;
+    Console.WriteLine($"Value changed from {oldValue} to {newValue}");
+}
+```
+
+</CodeGroup>
+
+## Validation mode
+
+`ValidationMode` (type `NumberBoxValidationMode`) determines what happens when the user submits invalid input.
+
+| Value | Behavior |
+|---|---|
+| `InvalidInputOverwritten` (default) | Invalid text is replaced with `PlaceholderText`. |
+| `Disabled` | Validation is skipped; invalid input is accepted as-is. |
+
+```xml
+<ui:NumberBox ValidationMode="InvalidInputOverwritten"
+              PlaceholderText="Enter a number" />
+```
+
+## Properties
+
+<AccordionGroup>
+  <Accordion title="Value and range">
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Value` | `double` | `0` | The numeric value. Supports two-way binding. |
+| `Minimum` | `double` | `double.MinValue` | Lower bound for `Value`. |
+| `Maximum` | `double` | `double.MaxValue` | Upper bound for `Value`. |
+| `SmallChange` | `double` | `1` | Amount added or subtracted by arrow keys and scroll. |
+| `LargeChange` | `double` | `10` | Amount added or subtracted by Page Up / Page Down. |
+
+  </Accordion>
+  <Accordion title="Display">
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `Header` | `object` | — | Label rendered above the control. |
+| `HeaderTemplate` | `IDataTemplate` | — | Custom template for the header. |
+| `Description` | `string` | — | Hint text displayed below the control. |
+| `PlaceholderText` | `string` | — | Watermark text shown when no value is set. |
+| `TextAlignment` | `TextAlignment` | `Left` | Alignment of the numeric text inside the field. |
+| `SimpleNumberFormat` | `string` | — | .NET format string applied to the displayed value (e.g. `"F2"`). |
+| `InnerLeftContent` | `object` | — | Content placed inside the left edge of the text field. |
+
+  </Accordion>
+  <Accordion title="Behavior">
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `SpinButtonPlacementMode` | `NumberBoxSpinButtonPlacementMode` | `Hidden` | Controls spin button visibility. |
+| `ValidationMode` | `NumberBoxValidationMode` | `InvalidInputOverwritten` | How invalid input is handled. |
+| `AcceptsExpression` | `bool` | `false` | Enables arithmetic expression parsing. |
+| `IsWrapEnabled` | `bool` | `false` | Wraps `Value` from `Maximum` back to `Minimum` (and vice versa) when spinning. |
+
+  </Accordion>
+</AccordionGroup>
+
+## Number formatting
+
+Use `SimpleNumberFormat` for standard .NET format strings. For full control, assign a `Func<double, string>` to the `NumberFormatter` property in code-behind.
+
+<Warning>
+  `SimpleNumberFormat` and `NumberFormatter` cannot be used at the same time. Setting both throws an exception at runtime.
+</Warning>
+
+<CodeGroup>
+
+```xml XAML
+<!-- Show two decimal places -->
+<ui:NumberBox SimpleNumberFormat="F2" Value="3.14159" />
+```
+
+```csharp C#
+// Custom formatter in code-behind
+myNumberBox.NumberFormatter = value => $"${value:N2}";
+```
+
+</CodeGroup>
+
+## Wrap-around values
+
+Set `IsWrapEnabled="True"` together with explicit `Minimum` and `Maximum` so that spinning past the maximum wraps to the minimum, and vice versa.
+
+```xml
+<ui:NumberBox Minimum="1"
+              Maximum="12"
+              IsWrapEnabled="True"
+              SpinButtonPlacementMode="Inline"
+              Header="Month" />
+```
+
+<Tip>
+  Wrap-around is useful for cyclic values such as hours (1–12), months (1–12), or degrees (0–359).
+</Tip>

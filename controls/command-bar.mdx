@@ -1,0 +1,214 @@
+---
+title: 'CommandBar: App toolbar with primary and overflow commands'
+description: 'Build Fluent Design toolbars with CommandBar in FluentAvalonia. Arrange buttons, toggle buttons, and separators into primary and overflow command sets.'
+keywords: ['CommandBar', 'CommandBarButton', 'CommandBarToggleButton', 'FluentAvalonia', 'toolbar', 'Avalonia']
+---
+
+`CommandBar` is a toolbar control that displays a row of command buttons alongside an optional overflow menu (the "more" ellipsis button). Commands are divided into two collections: `PrimaryCommands`, which appear directly on the bar, and `SecondaryCommands`, which are always in the overflow flyout. The bar can be opened to reveal labels and closed to show compact icon-only buttons, making it suitable for editor toolbars, photo viewers, media players, and other command-heavy surfaces.
+
+## Installation
+
+Add the FluentAvalonia namespace to your XAML file:
+
+```xml
+xmlns:ui="using:FluentAvalonia.UI.Controls"
+```
+
+## Basic usage
+
+Populate `PrimaryCommands` with `CommandBarButton` elements and optionally add `SecondaryCommands` for less-frequent actions.
+
+```xml
+<ui:CommandBar>
+    <ui:CommandBar.PrimaryCommands>
+        <ui:CommandBarButton Label="New"
+                             IconSource="Add" />
+        <ui:CommandBarButton Label="Open"
+                             IconSource="FolderOpen" />
+        <ui:CommandBarButton Label="Save"
+                             IconSource="Save" />
+        <ui:CommandBarSeparator />
+        <ui:CommandBarButton Label="Undo"
+                             IconSource="Undo" />
+    </ui:CommandBar.PrimaryCommands>
+
+    <ui:CommandBar.SecondaryCommands>
+        <ui:CommandBarButton Label="Settings"
+                             IconSource="Settings" />
+        <ui:CommandBarButton Label="About"
+                             IconSource="Info" />
+    </ui:CommandBar.SecondaryCommands>
+</ui:CommandBar>
+```
+
+## Command types
+
+FluentAvalonia provides several types that implement `ICommandBarElement` and can be placed in either command collection.
+
+<AccordionGroup>
+  <Accordion title="CommandBarButton">
+    A standard push button with an optional icon and text label. Handles `Click` events.
+
+    ```xml
+    <ui:CommandBarButton Label="Delete"
+                         IconSource="Delete"
+                         Click="OnDeleteClicked" />
+    ```
+
+    Key properties: `Label`, `IconSource`, `IsCompact`, `DynamicOverflowOrder`.
+  </Accordion>
+
+  <Accordion title="CommandBarToggleButton">
+    A toggle button that stays pressed until clicked again. Exposes `IsChecked` (inherited from `ToggleButton`).
+
+    ```xml
+    <ui:CommandBarToggleButton Label="Bold"
+                               IconSource="Bold"
+                               IsChecked="{Binding IsBold}" />
+    ```
+
+    Key properties: `Label`, `IconSource`, `IsChecked`, `IsCompact`.
+  </Accordion>
+
+  <Accordion title="CommandBarSeparator">
+    A thin visual divider between groups of commands.
+
+    ```xml
+    <ui:CommandBarSeparator />
+    ```
+  </Accordion>
+
+  <Accordion title="CommandBarElementContainer">
+    A wrapper that allows arbitrary content (e.g. a `ComboBox` or `TextBox`) to appear inside the command bar while still implementing `ICommandBarElement`.
+
+    ```xml
+    <ui:CommandBarElementContainer>
+        <ComboBox Width="120">
+            <ComboBoxItem>Small</ComboBoxItem>
+            <ComboBoxItem>Medium</ComboBoxItem>
+            <ComboBoxItem>Large</ComboBoxItem>
+        </ComboBox>
+    </ui:CommandBarElementContainer>
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## ICommandBarElement interface
+
+Every item placed in `PrimaryCommands` or `SecondaryCommands` must implement `ICommandBarElement`. The interface exposes three members:
+
+| Member | Type | Description |
+|---|---|---|
+| `IsCompact` | `bool` | When `true`, the element is shown without a label and with reduced padding. |
+| `IsInOverflow` | `bool` (read-only) | `true` when the element has been moved into the overflow flyout. |
+| `DynamicOverflowOrder` | `int` | Priority order for moving primary commands to overflow when space is tight. Lower values overflow first. |
+
+## Closed display mode
+
+`ClosedDisplayMode` (type `CommandBarClosedDisplayMode`) controls how the bar looks when it is closed.
+
+| Value | Appearance |
+|---|---|
+| `Compact` (default) | Icon buttons are visible; labels are hidden. |
+| `Minimal` | Only the ellipsis overflow button is shown. |
+| `Hidden` | The entire bar is hidden. |
+
+```xml
+<ui:CommandBar ClosedDisplayMode="Minimal" />
+```
+
+## Label position
+
+`DefaultLabelPosition` (type `CommandBarDefaultLabelPosition`) controls where button labels appear relative to their icons.
+
+| Value | Behaviour |
+|---|---|
+| `Bottom` (default) | Labels appear below the icon when the bar is open. |
+| `Right` | Labels appear to the right of the icon and remain visible even when closed. |
+| `Collapsed` | Labels are always hidden. |
+
+```xml
+<ui:CommandBar DefaultLabelPosition="Right" />
+```
+
+## Dynamic overflow
+
+When `IsDynamicOverflowEnabled` is `true` (the default), primary commands that no longer fit the available width are automatically moved to the overflow flyout. Control the eviction order with `DynamicOverflowOrder` on each element.
+
+<Tip>
+  Set `DynamicOverflowOrder` to a higher number on commands you want to keep visible the longest. The command with the lowest order is moved to overflow first.
+</Tip>
+
+## Open/close events
+
+| Event | Fires when |
+|---|---|
+| `Opening` | The bar starts to open. |
+| `Opened` | The bar is fully open. |
+| `Closing` | The bar starts to close. |
+| `Closed` | The bar is fully closed. |
+
+## Full example
+
+The following example shows a photo editor toolbar with a toggle button for bold, a separator, secondary commands in the overflow menu, and the bar initially open.
+
+```xml
+<ui:CommandBar IsOpen="True"
+               ClosedDisplayMode="Compact"
+               DefaultLabelPosition="Bottom">
+
+    <ui:CommandBar.PrimaryCommands>
+        <ui:CommandBarButton Label="Crop"
+                             IconSource="Crop" />
+        <ui:CommandBarToggleButton Label="Grid"
+                                   IconSource="ViewAll" />
+        <ui:CommandBarSeparator />
+        <ui:CommandBarButton Label="Rotate"
+                             IconSource="Rotate" />
+        <ui:CommandBarButton Label="Flip"
+                             IconSource="Switch" />
+    </ui:CommandBar.PrimaryCommands>
+
+    <ui:CommandBar.SecondaryCommands>
+        <ui:CommandBarButton Label="Export"
+                             IconSource="Share" />
+        <ui:CommandBarButton Label="Print"
+                             IconSource="Print" />
+        <ui:CommandBarSeparator />
+        <ui:CommandBarButton Label="Settings"
+                             IconSource="Settings" />
+    </ui:CommandBar.SecondaryCommands>
+
+</ui:CommandBar>
+```
+
+## Properties
+
+<AccordionGroup>
+  <Accordion title="CommandBar">
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `PrimaryCommands` | `IAvaloniaList<ICommandBarElement>` | — | Commands displayed directly on the bar. |
+| `SecondaryCommands` | `IAvaloniaList<ICommandBarElement>` | — | Commands always placed in the overflow flyout. |
+| `IsOpen` | `bool` | `false` | Whether the bar is in its open (expanded) state. |
+| `IsSticky` | `bool` | `true` | When `true`, the bar does not close on light dismiss. |
+| `ClosedDisplayMode` | `CommandBarClosedDisplayMode` | `Compact` | Appearance of the bar when closed. |
+| `DefaultLabelPosition` | `CommandBarDefaultLabelPosition` | `Bottom` | Default placement of button labels. |
+| `OverflowButtonVisibility` | `CommandBarOverflowButtonVisibility` | `Auto` | Controls when the ellipsis overflow button is shown. |
+| `IsDynamicOverflowEnabled` | `bool` | `true` | Enables automatic overflow of primary commands. |
+| `ItemsAlignment` | `CommandBarItemsAlignment` | `Left` | Horizontal alignment of primary commands. |
+
+  </Accordion>
+  <Accordion title="CommandBarButton and CommandBarToggleButton">
+
+| Property | Type | Description |
+|---|---|---|
+| `Label` | `string` | Text label shown on the button. |
+| `IconSource` | `IconSource` | Icon displayed on the button. Accepts a `Symbol` name string. |
+| `IsCompact` | `bool` | Hides the label and reduces padding. |
+| `IsInOverflow` | `bool` | Read-only. `true` when the button is in the overflow menu. |
+| `DynamicOverflowOrder` | `int` | Overflow priority. Lower value = overflows sooner. |
+
+  </Accordion>
+</AccordionGroup>
